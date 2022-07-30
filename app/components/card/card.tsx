@@ -1,7 +1,18 @@
 import * as React from "react"
-import { View, ImageBackground, ViewStyle, StyleProp, ImageStyle, PixelRatio } from "react-native"
+import {
+  View,
+  ImageBackground,
+  ViewStyle,
+  StyleProp,
+  ImageStyle,
+  PixelRatio,
+  TouchableOpacity,
+  ViewProps,
+} from "react-native"
 import { cardHeight, CardWidth } from "../../config/constants"
 import { CardProps } from "./card.props"
+import * as Animatable from "react-native-animatable"
+
 export const cardsSripeMap = require("./cards-sprite-map.png")
 
 const spriteWidth = PixelRatio.roundToNearestPixel(1252)
@@ -35,9 +46,11 @@ const JACKET_OFFSET = {
   left: CardWidth * -2,
 }
 
-export function Card({ offset, opened }: CardProps) {
-  const spriteOffset = opened ? offset : JACKET_OFFSET
+export function Card(props: CardProps) {
+  const { offset, opened } = props
+  const cardRef = React.useRef(null)
 
+  const spriteOffset = opened ? offset : JACKET_OFFSET
   const CARD_IMAGE_STYLE: StyleProp<ImageStyle> = {
     width: spriteWidth,
     height: spriteHeight,
@@ -46,13 +59,24 @@ export function Card({ offset, opened }: CardProps) {
     ...spriteOffset,
   }
 
+  const handlePress = () => {
+    // TODO make turn with card props
+  }
+
   return (
-    <View style={CARD_CONTAINER_STYLE}>
-      <ImageBackground
-        style={CARD_IMAGE_BACKGROUND_STYLE}
-        imageStyle={CARD_IMAGE_STYLE}
-        source={cardsSripeMap}
-      />
-    </View>
+    <TouchableOpacity onPress={handlePress}>
+      <Animatable.View
+        ref={cardRef}
+        animation="flipInY"
+        duration={300}
+        style={CARD_CONTAINER_STYLE}
+      >
+        <ImageBackground
+          style={CARD_IMAGE_BACKGROUND_STYLE}
+          imageStyle={CARD_IMAGE_STYLE}
+          source={cardsSripeMap}
+        />
+      </Animatable.View>
+    </TouchableOpacity>
   )
 }

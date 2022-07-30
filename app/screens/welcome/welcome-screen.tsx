@@ -68,16 +68,16 @@ const SUBTITLE: TextStyle = {
   fontSize: 20,
   lineHeight: 20,
 }
-const CONTINUE: ViewStyle = {
+const PLAY: ViewStyle = {
   paddingVertical: spacing[4],
   paddingHorizontal: spacing[4],
   backgroundColor: color.palette.deepPurple,
 }
-const CONTINUE_TEXT: TextStyle = {
+const PLAY_TEXT: TextStyle = {
   ...TEXT,
   ...BOLD,
   fontSize: 13,
-  letterSpacing: 2,
+  letterSpacing: 5,
 }
 const FOOTER: ViewStyle = { backgroundColor: "#20162D" }
 const FOOTER_CONTENT: ViewStyle = {
@@ -97,7 +97,7 @@ const LOGO_RUN_STYLE: ImageStyle = {
 
 export const WelcomeScreen: FC<StackScreenProps<NavigatorParamList, "welcome">> = observer(
   ({ navigation }) => {
-    const nextScreen = () => navigation.navigate("demo")
+    const nextScreen = () => navigation.navigate("playground")
 
     return (
       <View testID="WelcomeScreen" style={FULL}>
@@ -118,8 +118,8 @@ export const WelcomeScreen: FC<StackScreenProps<NavigatorParamList, "welcome">> 
           <View style={FOOTER_CONTENT}>
             <Button
               testID="next-screen-button"
-              style={CONTINUE}
-              textStyle={CONTINUE_TEXT}
+              style={PLAY}
+              textStyle={PLAY_TEXT}
               tx="welcomeScreen.play"
               onPress={nextScreen}
             />

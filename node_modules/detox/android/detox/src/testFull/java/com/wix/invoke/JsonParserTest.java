@@ -41,8 +41,8 @@ public class JsonParserTest {
     public void fromJsonTargetInvocationEspresso() {
 //        Espresso.onView(DetoxMatcher.matcherForContentDescription("Sanity")).perform(ViewActions.click());
         Invocation matcher = new Invocation(new ClassTarget("com.wix.detox.espresso.DetoxMatcher"), "matcherForContentDescription", "Sanity");
-        Invocation onView = new Invocation(new ClassTarget("android.support.test.espresso.Espresso"), "onView", matcher);
-        Invocation click = new Invocation(new ClassTarget("android.support.test.espresso.action.ViewActions"), "click");
+        Invocation onView = new Invocation(new ClassTarget("androidx.test.espresso.Espresso"), "onView", matcher);
+        Invocation click = new Invocation(new ClassTarget("androidx.test.espresso.action.ViewActions"), "click");
         Invocation perform = new Invocation(new InvocationTarget(onView), "perform", click);
 
 
@@ -55,8 +55,8 @@ public class JsonParserTest {
 //        EspressoDetox.perform(Espresso.onView(DetoxMatcher.matcherForContentDescription("Sanity")), ViewActions.click());
 
         Invocation matcher = new Invocation(new ClassTarget("com.wix.detox.espresso.DetoxMatcher"), "matcherForContentDescription", "Sanity");
-        Invocation onView = new Invocation(new ClassTarget("android.support.test.espresso.Espresso"), "onView", matcher);
-        Invocation click = new Invocation(new ClassTarget("android.support.test.espresso.action.ViewActions"), "click");
+        Invocation onView = new Invocation(new ClassTarget("androidx.test.espresso.Espresso"), "onView", matcher);
+        Invocation click = new Invocation(new ClassTarget("androidx.test.espresso.action.ViewActions"), "click");
         Invocation perform = new Invocation(new ClassTarget("com.wix.detox.espresso.EspressoDetox"), "perform", onView, click);
 
         assertThat(parse("targetInvocationEspressoDetox.json")).isEqualToComparingFieldByFieldRecursively(perform);
