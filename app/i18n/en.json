@@ -8,9 +8,9 @@
     "invalidEmail": "Invalid email address."
   },
   "welcomeScreen": {
-    "poweredBy": "POWERED BY IGNITE",
+    "poweredBy": "PITECANTROPARIUM",
     "readyForLaunch": "Ready for launch.",
-    "continue": "CONTINUE"
+    "play": "PLAY"
   },
   "demoScreen": {
     "howTo": "HOW TO",

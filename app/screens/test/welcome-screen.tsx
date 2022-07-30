@@ -1,5 +1,5 @@
 import React, { FC } from "react"
-import { View, ViewStyle, TextStyle, SafeAreaView, ImageStyle } from "react-native"
+import { View, ViewStyle, TextStyle, ImageStyle, SafeAreaView } from "react-native"
 import { StackScreenProps } from "@react-navigation/stack"
 import { observer } from "mobx-react-lite"
 import {
@@ -13,23 +13,9 @@ import {
 import { color, spacing, typography } from "../../theme"
 import { NavigatorParamList } from "../../navigators"
 
-const LOGO_RUNGADONG = require("./ng-run.gif")
-const LOGO_CARDGADONG = require("./ng-spread.gif")
+const bowserLogo = require("./bowser.png")
 
 const FULL: ViewStyle = { flex: 1 }
-const LOGO_CONTAINER: ViewStyle = {
-  ...FULL,
-  alignItems: "center",
-  justifyContent: "center",
-  marginTop: 20,
-  /* shadowColor: "black",
-  shadowOffset: {
-    width: 2,
-    height: -2,
-  },
-  shadowOpacity: 1,
-  shadowRadius: 1, */
-}
 const CONTAINER: ViewStyle = {
   backgroundColor: color.transparent,
   paddingHorizontal: spacing[4],
@@ -40,8 +26,8 @@ const TEXT: TextStyle = {
 }
 const BOLD: TextStyle = { fontWeight: "bold" }
 const HEADER: TextStyle = {
-  paddingTop: spacing[4],
-  paddingBottom: spacing[4],
+  paddingTop: spacing[3],
+  paddingBottom: spacing[4] + spacing[1],
   paddingHorizontal: 0,
 }
 const HEADER_TITLE: TextStyle = {
@@ -50,7 +36,7 @@ const HEADER_TITLE: TextStyle = {
   fontSize: 12,
   lineHeight: 15,
   textAlign: "center",
-  letterSpacing: 3.8,
+  letterSpacing: 1.5,
 }
 const TITLE_WRAPPER: TextStyle = {
   ...TEXT,
@@ -60,13 +46,28 @@ const TITLE: TextStyle = {
   ...TEXT,
   ...BOLD,
   fontSize: 28,
-  lineHeight: 32,
+  lineHeight: 38,
   textAlign: "center",
 }
-const SUBTITLE: TextStyle = {
-  ...TITLE,
-  fontSize: 20,
-  lineHeight: 20,
+const ALMOST: TextStyle = {
+  ...TEXT,
+  ...BOLD,
+  fontSize: 26,
+  fontStyle: "italic",
+}
+const BOWSER: ImageStyle = {
+  alignSelf: "center",
+  marginVertical: spacing[5],
+  maxWidth: "100%",
+  width: 343,
+  height: 230,
+}
+const CONTENT: TextStyle = {
+  ...TEXT,
+  color: "#BAB6C8",
+  fontSize: 15,
+  lineHeight: 22,
+  marginBottom: spacing[5],
 }
 const CONTINUE: ViewStyle = {
   paddingVertical: spacing[4],
@@ -84,16 +85,6 @@ const FOOTER_CONTENT: ViewStyle = {
   paddingVertical: spacing[4],
   paddingHorizontal: spacing[4],
 }
-const LOGO_SHAKE_STYLE: ImageStyle = {
-  width: 300,
-  height: 200,
-}
-const LOGO_RUN_STYLE: ImageStyle = {
-  height: 300,
-  width: 212,
-  borderRadius: 100,
-  backgroundColor: "#c5b09f",
-}
 
 export const WelcomeScreen: FC<StackScreenProps<NavigatorParamList, "welcome">> = observer(
   ({ navigation }) => {
@@ -103,16 +94,35 @@ export const WelcomeScreen: FC<StackScreenProps<NavigatorParamList, "welcome">> 
       <View testID="WelcomeScreen" style={FULL}>
         <GradientBackground colors={["#422443", "#281b34"]} />
         <Screen style={CONTAINER} preset="scroll" backgroundColor={color.transparent}>
-          <Header headerTx="welcomeScreen.poweredBy" style={HEADER} titleStyle={HEADER_TITLE} />
-          <Text style={TITLE_WRAPPER}>
-            <Text style={TITLE} text="NGADONGUS" />
-          </Text>
-          <Text style={SUBTITLE} preset="header" text="~non sapiens~" />
-
-          <View testID="LogoContainer" style={LOGO_CONTAINER}>
-            <Image resizeMode="contain" style={LOGO_SHAKE_STYLE} source={LOGO_CARDGADONG} />
-            <Image resizeMode="contain" style={LOGO_RUN_STYLE} source={LOGO_RUNGADONG} />
-          </View>
+          <FlatList
+            horizontal
+            contentContainerStyle={FLAT_LIST}
+            data={[...CLUBS]}
+            keyExtractor={(item) => `${item.rank}${item.suit}`}
+            renderItem={({ item }) => <Card {...item} opened />}
+          />
+          <FlatList
+            horizontal
+            contentContainerStyle={FLAT_LIST}
+            data={[...SPADES]}
+            keyExtractor={(item) => `${item.rank}${item.suit}`}
+            renderItem={({ item }) => <Card {...item} opened />}
+          />
+          <FlatList
+            horizontal
+            contentContainerStyle={FLAT_LIST}
+            data={[...DIAMONDS]}
+            keyExtractor={(item) => `${item.rank}${item.suit}`}
+            renderItem={({ item }) => <Card {...item} opened />}
+          />
+          <FlatList
+            horizontal
+            contentContainerStyle={FLAT_LIST}
+            data={[...HEARTS]}
+            keyExtractor={(item) => `${item.rank}${item.suit}`}
+            renderItem={({ item }) => <Card {...item} opened />}
+          />
+          <Card {...SPADES[0]} opened={false} />
         </Screen>
         <SafeAreaView style={FOOTER}>
           <View style={FOOTER_CONTENT}>
@@ -120,7 +130,7 @@ export const WelcomeScreen: FC<StackScreenProps<NavigatorParamList, "welcome">> 
               testID="next-screen-button"
               style={CONTINUE}
               textStyle={CONTINUE_TEXT}
-              tx="welcomeScreen.play"
+              tx="welcomeScreen.continue"
               onPress={nextScreen}
             />
           </View>

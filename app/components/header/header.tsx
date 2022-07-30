@@ -12,8 +12,8 @@ const ROOT: ViewStyle = {
   flexDirection: "row",
   paddingHorizontal: spacing[4],
   alignItems: "center",
-  paddingTop: spacing[5],
-  paddingBottom: spacing[5],
+  paddingTop: spacing[3],
+  paddingBottom: spacing[3],
   justifyContent: "flex-start",
 }
 const TITLE: TextStyle = { textAlign: "center" }

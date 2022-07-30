@@ -14,7 +14,7 @@ import { DEFAULT_REACTOTRON_WS_URI } from "../app/services/reactotron/reactotron
  * new components in Storybook.
  */
 export function ToggleStorybook(props) {
-  const [showStorybook, setShowStorybook] = useState(false)
+  const [showStorybook, setShowStorybook] = useState(true)
   const [StorybookUIRoot, setStorybookUIRoot] = useState(null)
   const ws = useRef(new WebSocket(DEFAULT_REACTOTRON_WS_URI))
 
