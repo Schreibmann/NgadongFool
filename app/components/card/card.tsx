@@ -1,17 +1,18 @@
 import * as React from "react"
 import {
-  View,
   ImageBackground,
   ViewStyle,
   StyleProp,
   ImageStyle,
   PixelRatio,
   TouchableOpacity,
-  ViewProps,
+  TextStyle,
 } from "react-native"
 import { cardHeight, CardWidth } from "../../config/constants"
 import { CardProps } from "./card.props"
 import * as Animatable from "react-native-animatable"
+import { color, typography } from "../../theme"
+import { Text } from "../../components"
 
 export const cardsSripeMap = require("./cards-sprite-map.png")
 
@@ -29,16 +30,31 @@ const CARD_CONTAINER_STYLE: StyleProp<ViewStyle> = {
   borderRadius: 6,
   overflow: "hidden",
 }
-
 const CARD_IMAGE_BACKGROUND_STYLE: StyleProp<ImageStyle> = {
+  display: 'flex',
   flex: 1,
   width,
   height,
   backgroundColor: "transparent",
   borderRadius: 6,
-
+  justifyContent: 'center',
+  alignItems: 'center',
   overflow: "hidden",
   top: 0,
+}
+const TEXT: TextStyle = {
+  color: color.palette.black,
+  fontFamily: typography.code,
+}
+const BOLD: TextStyle = { fontWeight: "bold" }
+const STUMP_TEXT: TextStyle = {
+  ...TEXT,
+  ...BOLD,
+  fontSize: 24,
+  letterSpacing: 6,
+  transform: [{
+    rotate: '-64deg',
+  }]
 }
 
 const JACKET_OFFSET = {
@@ -47,7 +63,7 @@ const JACKET_OFFSET = {
 }
 
 export function Card(props: CardProps) {
-  const { offset, opened } = props
+  const { offset, opened, isStump } = props
   const cardRef = React.useRef(null)
 
   const spriteOffset = opened ? offset : JACKET_OFFSET
@@ -64,7 +80,7 @@ export function Card(props: CardProps) {
   }
 
   return (
-    <TouchableOpacity onPress={handlePress}>
+    <TouchableOpacity s onPress={handlePress}>
       <Animatable.View
         ref={cardRef}
         animation="flipInY"
@@ -75,7 +91,10 @@ export function Card(props: CardProps) {
           style={CARD_IMAGE_BACKGROUND_STYLE}
           imageStyle={CARD_IMAGE_STYLE}
           source={cardsSripeMap}
-        />
+        >
+          {isStump && <Text style={STUMP_TEXT} text="ПЕНЁК" />}
+        </ImageBackground>
+        
       </Animatable.View>
     </TouchableOpacity>
   )

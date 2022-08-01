@@ -35,6 +35,8 @@ export interface Card {
     top: number
     left: number
   }
+
+  isStump?: boolean
 }
 
 export interface CardProps extends Card {
