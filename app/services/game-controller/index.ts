@@ -52,7 +52,7 @@ export class GameController {
         const cardIndex = fromPlayer.cards.findIndex(c => c.rank === card.rank && c.suit === card.suit)
         if (to) {
             const targetPlayer = this.players.find(player => player.id === to)
-            targetPlayer.cards.push(fromPlayer.cards[cardIndex])
+            targetPlayer.cards.unshift(fromPlayer.cards[cardIndex])
         } else {
             this.current.push(fromPlayer.cards[cardIndex])  
         }
@@ -66,7 +66,7 @@ export class GameController {
             if (toStump) {
                 targetPlayer.stumps.push({...card, isStump: true})
             } else {
-                targetPlayer.cards.push(card)
+                targetPlayer.cards.unshift(card)
             }
             
         } else {
@@ -82,11 +82,47 @@ export class GameController {
     }
 
     setActivePlayer(playerId: number) { 
+        this.activePlayer = playerId;
+    }
+
+    prepareTurnCPU(playerId: number, playerCard?: Card) {
+        const self = this.players.find(player => player.id === playerId)
+        const opponents = this.players.filter(player => player.id !== playerId)
+
+        let card = playerCard || this.deck[0]
+        let receiverId: number
+        let canPass = this.checkIfCanPassCard(opponents[0], card)
+
+        if (canPass) {
+            receiverId = opponents[0].id
+          // this.passCard({ card, from: self.id, to: opponents[0].id})
+        } else {
+            canPass = this.checkIfCanPassCard(opponents[1], card) 
+            if (canPass) {
+                receiverId = opponents[1].id
+                // this.passCard({ card, from: self.id, to: opponents[1].id})
+            } else {
+                canPass = this.checkIfCanPassCard(self, card)
+                if (canPass) {
+                    receiverId = self.id
+                    // this.passCard({ card, from: self.id, to: opponents[1].id})
+                }
+            }
+        }
+
+        if (canPass) {
+            this.takeCard(receiverId)
+            card = self.cards[0]
+        }
 
     }
 
-    prepareTurnCPU(playerId: number) {
-        const player = this.players.find(player => player.id === playerId)
-        const opponents = this.players.filter(player => player.id !== playerId)
+    checkIfCanPassCard(target: Player, card: Card) {
+        if (target.cards.length === 0) {
+            return false
+        }
+        const targetCard = target.cards[0]
+        const canPass = targetCard.rank === card.rank - 1
+        return canPass
     }
 }

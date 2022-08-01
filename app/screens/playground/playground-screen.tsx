@@ -112,6 +112,7 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
             <View style={PLAYER}>
               <Image source={{ uri: gameController?.players[0].avatar }} resizeMode="contain" style={PLAYER_IMAGE} />
               <Text style={TEXT} text={gameController?.players[0].name} />
+              <Card {...gameController.players[0].cards.at(-1)} opened />
             </View>
             <View style={PLAYER}>
               <Image source={{ uri: gameController?.players[1].avatar }} resizeMode="contain" style={PLAYER_IMAGE} />
