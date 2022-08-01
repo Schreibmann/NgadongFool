@@ -2,39 +2,51 @@ import React, { FC } from "react"
 import { View, ViewStyle, TextStyle, ImageStyle, SafeAreaView, FlatList } from "react-native"
 import { StackScreenProps } from "@react-navigation/stack"
 import { observer } from "mobx-react-lite"
-import { Header, Screen, Text, GradientBackground, Card, AutoImage as Image } from "../../components"
+import {
+  Header,
+  Screen,
+  Text,
+  GradientBackground,
+  Card,
+  AutoImage as Image,
+} from "../../components"
 import { color, spacing, typography } from "../../theme"
 import { NavigatorParamList } from "../../navigators"
-import { GameController, Player } from '../../services/game-controller/index';
+import {
+  GameController,
+  Player,
+  PlaygroundState,
+  Stage,
+} from "../../services/game-controller/index"
 
 const PLAYER_ONE_AVATAR = require("./ng-drum.gif")
 const PLAYER_TWO_AVATAR = require("./ng-scull.png")
 
 const CPU_IVAN: Player = {
   id: 1,
-  name: 'Ivan',
+  name: "Ivan",
   avatar: PLAYER_ONE_AVATAR,
   isCPU: true,
   cards: [],
-  stumps: []
+  stumps: [],
 }
 
 const CPU_SEBASTIAN: Player = {
   id: 2,
-  name: 'Sebastian',
+  name: "Sebastian",
   avatar: PLAYER_TWO_AVATAR,
   isCPU: true,
   cards: [],
-  stumps: []
+  stumps: [],
 }
 
 const PLAYER_FROM_NGADONG: Player = {
   id: 3,
-  name: 'Ngadong man',
+  name: "Ngadong man",
   avatar: null,
   isCPU: false,
   cards: [],
-  stumps: []
+  stumps: [],
 }
 
 const FULL: ViewStyle = { flex: 1 }
@@ -44,20 +56,21 @@ const MAIN_CONTAINER: ViewStyle = {
   paddingHorizontal: spacing[2],
 }
 const PLAYER: ViewStyle = {
-  display: 'flex',
+  display: "flex",
   alignItems: "center",
   justifyContent: "center",
 }
 const TURN_CONTAINER: ViewStyle = {
   ...FULL,
-  display: 'flex',
-  flexDirection: 'row',
+  display: "flex",
+  flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
 }
 const TEXT: TextStyle = {
   color: color.palette.white,
   fontFamily: typography.primary,
+  textAlign: "center",
 }
 // const BOLD: TextStyle = { fontWeight: "bold" }
 const FOOTER: ViewStyle = { backgroundColor: "#20162D" }
@@ -70,39 +83,51 @@ const FLAT_LIST: ViewStyle = {
 }
 const PLAYER_IMAGE: ImageStyle = {
   backgroundColor: "white",
-  borderColor: '#deb887',
+  borderColor: "#deb887",
   borderWidth: 4,
   borderRadius: 50,
   height: 90,
   width: 90,
 }
 const TOP_CONTAINERE: ViewStyle = {
-  display: 'flex',
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
   padding: 4,
-  paddingVertical: 12
+  paddingVertical: 12,
 }
+
+const players: Player[] = [CPU_IVAN, CPU_SEBASTIAN, PLAYER_FROM_NGADONG]
 
 export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playground">> = observer(
   ({ navigation }) => {
-    const [gameController, setGameController] = React.useState<GameController>(null);
+    const [state, setState] = React.useState<PlaygroundState>(undefined)
 
-    React.useEffect(() => { 
-      const players: Player[] = [
-        CPU_IVAN,
-        CPU_SEBASTIAN,
-        PLAYER_FROM_NGADONG
-      ]
-      const controller = new GameController(players)
-      controller.init();
-      setGameController(controller)
+    const ctrlRef = React.useRef<GameController>(null)
+
+    const init = React.useCallback(async() => { 
+      const controller = new GameController(players, setState)
+      ctrlRef.current = controller
+      await ctrlRef.current.init()
     }, [])
 
-    const me = gameController?.players.find(player => player.isCPU === false)
+    React.useEffect(() => {
+      init()
+    }, [])
 
-    console.log(gameController)
+    React.useEffect(() => {
+      if (state?.activePlayer?.id && state.activePlayer.id !== PLAYER_FROM_NGADONG.id) {
+        console.log("prepareTurnCPU", state)
+        ctrlRef.current.prepareTurnCPU(state.activePlayer.id)
+      }
+    }, [state?.activePlayer?.id])
+
+    const me = state?.players?.find((player) => player.isCPU === false)
+
+    if (!me) {
+      return null
+    }
 
     return (
       <View testID="PlaygroundScreen" style={FULL}>
@@ -110,29 +135,60 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
         <Screen style={MAIN_CONTAINER} preset="scroll" backgroundColor={color.transparent}>
           <View testID="TopContainer" style={TOP_CONTAINERE}>
             <View style={PLAYER}>
-              <Image source={{ uri: gameController?.players[0].avatar }} resizeMode="contain" style={PLAYER_IMAGE} />
-              <Text style={TEXT} text={gameController?.players[0].name} />
-              <Card {...gameController.players[0].cards.at(-1)} opened />
+              <Image
+                source={{ uri: state?.players[0].avatar }}
+                resizeMode="contain"
+                style={PLAYER_IMAGE}
+              />
+              <Text style={TEXT} text={state?.players[0].name} />
+              {state.players[0].cards.length > 0 ? (
+                <Card {...state.players[0].cards[0]} opened={state.stage === Stage.prepare} />
+              ) : (
+                <Text style={TEXT} text="Нет карт" />
+              )}
             </View>
             <View style={PLAYER}>
-              <Image source={{ uri: gameController?.players[1].avatar }} resizeMode="contain" style={PLAYER_IMAGE} />
-              <Text style={TEXT} text={gameController?.players[1].name} />
+              <Text
+                style={TEXT}
+                text={
+                  state?.activePlayer?.name
+                    ? `Ходит:\n ${state?.activePlayer?.name}`
+                    : "Сдаю пеньки"
+                }
+              />
             </View>
-        </View>
-          {gameController && <View testID="TurnContainer" style={TURN_CONTAINER}>
-          <Card {...gameController.current.at(-1)} opened />
-          <Card {...gameController.deck.at(-1)} opened={false} />
-        </View>}
+            <View style={PLAYER}>
+              <Image
+                source={{ uri: state?.players[1].avatar }}
+                resizeMode="contain"
+                style={PLAYER_IMAGE}
+              />
+              <Text style={TEXT} text={state?.players[1].name} />
+              {state.players[1].cards.length > 0 ? (
+                <Card {...state.players[1].cards[0]} opened={state.stage === Stage.prepare} />
+              ) : (
+                <Text style={TEXT} text="Нет карт" />
+              )}
+            </View>
+          </View>
+          {state && (
+            <View testID="TurnContainer" style={TURN_CONTAINER}>
+              {state.current.length > 0 && <Card {...state.current.at(-1)} opened />}
+              <Card {...state.deck.at(-1)} opened={state.activePlayer?.id === PLAYER_FROM_NGADONG.id} />
+            </View>
+          )}
         </Screen>
         <SafeAreaView style={FOOTER}>
           <View style={FOOTER_CONTENT}>
-            {gameController && <FlatList
-              horizontal
-              contentContainerStyle={FLAT_LIST}
-              data={[...me.cards, ...me.stumps]}
-              keyExtractor={(item) => `${item.rank}${item.suit}`}
-              renderItem={({ item }) => <Card {...item} opened={!item.isStump} />}
-            />}
+            {state && (
+              <FlatList
+                horizontal
+                contentContainerStyle={FLAT_LIST}
+                data={[...me.cards, ...me.stumps]}
+                keyExtractor={(item) => `${item.rank}${item.suit}`}
+                renderItem={({ item }) => <Card {...item} opened={!item.isStump} />}
+              />
+            )}
           </View>
         </SafeAreaView>
       </View>

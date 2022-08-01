@@ -31,14 +31,14 @@ const CARD_CONTAINER_STYLE: StyleProp<ViewStyle> = {
   overflow: "hidden",
 }
 const CARD_IMAGE_BACKGROUND_STYLE: StyleProp<ImageStyle> = {
-  display: 'flex',
+  display: "flex",
   flex: 1,
   width,
   height,
   backgroundColor: "transparent",
   borderRadius: 6,
-  justifyContent: 'center',
-  alignItems: 'center',
+  justifyContent: "center",
+  alignItems: "center",
   overflow: "hidden",
   top: 0,
 }
@@ -52,9 +52,11 @@ const STUMP_TEXT: TextStyle = {
   ...BOLD,
   fontSize: 24,
   letterSpacing: 6,
-  transform: [{
-    rotate: '-64deg',
-  }]
+  transform: [
+    {
+      rotate: "-64deg",
+    },
+  ],
 }
 
 const JACKET_OFFSET = {
@@ -80,7 +82,7 @@ export function Card(props: CardProps) {
   }
 
   return (
-    <TouchableOpacity s onPress={handlePress}>
+    <TouchableOpacity onPress={handlePress}>
       <Animatable.View
         ref={cardRef}
         animation="flipInY"
@@ -94,7 +96,6 @@ export function Card(props: CardProps) {
         >
           {isStump && <Text style={STUMP_TEXT} text="ПЕНЁК" />}
         </ImageBackground>
-        
       </Animatable.View>
     </TouchableOpacity>
   )
