@@ -99,7 +99,7 @@ export class GameController {
     }
     fromPlayer.cards = fromPlayer.cards.filter((_, index) => index !== cardIndex)
     this.updateState()
-    await this.wait(500)
+    await this.wait(100)
   }
 
   async takeCard(playerId?: number, toStump = false): Promise<void> {
@@ -115,7 +115,7 @@ export class GameController {
       this.current.push(card)
     }
     this.updateState()
-    await this.wait(500)
+    await this.wait(100)
   }
 
   async takeStumps(): Promise<void> {

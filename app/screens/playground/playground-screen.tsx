@@ -1,5 +1,14 @@
+/* eslint-disable react-native/no-color-literals */
 import React, { FC } from "react"
-import { View, ViewStyle, TextStyle, ImageStyle, SafeAreaView, FlatList } from "react-native"
+import {
+  View,
+  ViewStyle,
+  TextStyle,
+  ImageStyle,
+  SafeAreaView,
+  FlatList,
+  StyleSheet,
+} from "react-native"
 import { StackScreenProps } from "@react-navigation/stack"
 import { observer } from "mobx-react-lite"
 import {
@@ -180,6 +189,7 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
           {state && (
             <View testID="TurnContainer" style={TURN_CONTAINER}>
               {state.current.length > 0 && <Card {...state.current.at(-1)} opened />}
+
               <Card
                 {...state.deck.at(-1)}
                 opened={state.activePlayer?.id === PLAYER_FROM_NGADONG.id}
