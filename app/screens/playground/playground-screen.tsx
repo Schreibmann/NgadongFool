@@ -106,7 +106,7 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
 
     const ctrlRef = React.useRef<GameController>(null)
 
-    const init = React.useCallback(async() => { 
+    const init = React.useCallback(async () => {
       const controller = new GameController(players, setState)
       ctrlRef.current = controller
       await ctrlRef.current.init()
@@ -117,13 +117,15 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
     }, [])
 
     React.useEffect(() => {
-      if (state?.activePlayer?.id /* && state.activePlayer.id !== PLAYER_FROM_NGADONG.id */) {
-        console.log("prepareTurnCPU", state)
+      if (
+        state?.stage === Stage.prepare &&
+        state?.activePlayer?.id /* && state.activePlayer.id !== PLAYER_FROM_NGADONG.id */
+      ) {
         ctrlRef.current.prepareTurnCPU(state.activePlayer.id)
       }
     }, [state?.activePlayer?.id])
 
-    const me = state?.players?.[2]// find((player) => player.isCPU === false)
+    const me = state?.players?.[2] // find((player) => player.isCPU === false)
 
     if (!me) {
       return null
@@ -143,7 +145,9 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
               <Text style={TEXT} text={state?.players[0].name} />
               {state.players[0].cards.length > 0 ? (
                 <Card {...state.players[0].cards[0]} opened={state.stage === Stage.prepare} />
-              ) : state.players[0].stumps.length > 0 ? <Card {...state.players[0].stumps[0]} opened={ false} /> : (
+              ) : state.players[0].stumps.length > 0 ? (
+                <Card {...state.players[0].stumps[0]} opened={false} />
+              ) : (
                 <Text style={TEXT} text="Нет карт" />
               )}
             </View>
@@ -166,7 +170,9 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
               <Text style={TEXT} text={state?.players[1].name} />
               {state.players[1].cards.length > 0 ? (
                 <Card {...state.players[1].cards[0]} opened={state.stage === Stage.prepare} />
-              ) :  state.players[1].stumps.length > 0 ? <Card {...state.players[0].stumps[0]} opened={ false} /> : (
+              ) : state.players[1].stumps.length > 0 ? (
+                <Card {...state.players[0].stumps[0]} opened={false} />
+              ) : (
                 <Text style={TEXT} text="Нет карт" />
               )}
             </View>
@@ -174,7 +180,10 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
           {state && (
             <View testID="TurnContainer" style={TURN_CONTAINER}>
               {state.current.length > 0 && <Card {...state.current.at(-1)} opened />}
-              <Card {...state.deck.at(-1)} opened={state.activePlayer?.id === PLAYER_FROM_NGADONG.id} />
+              <Card
+                {...state.deck.at(-1)}
+                opened={state.activePlayer?.id === PLAYER_FROM_NGADONG.id}
+              />
             </View>
           )}
         </Screen>

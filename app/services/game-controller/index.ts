@@ -1,4 +1,4 @@
-import { Card } from "../../components/card/card.props"
+import { Card, CardSuits } from "../../components/card/card.props"
 import { CardDeck36 } from "../../config/constants"
 
 export interface Player {
@@ -29,6 +29,7 @@ export class GameController {
   public current: Card[]
   public stage: Stage
   public activePlayer: Player
+  public trump: CardSuits
 
   private setState: React.Dispatch<React.SetStateAction<PlaygroundState>>
 
@@ -76,20 +77,23 @@ export class GameController {
     }
     return deck
   }
-    
+
   setActivePlayer(player: Player) {
     this.activePlayer = player
     this.updateState()
   }
 
   async passCard({ card, from, to }: { from: number; to?: number; card: Card }): Promise<void> {
+    console.log("pass card", card, from, to)
     const fromPlayer = this.players.find((player) => player.id === from)
     const cardIndex = fromPlayer.cards.findIndex(
       (c) => c.rank === card.rank && c.suit === card.suit,
     )
+    // Pass to player
     if (to) {
       const targetPlayer = this.players.find((player) => player.id === to)
       targetPlayer.cards.unshift(fromPlayer.cards[cardIndex])
+      // Put to deck
     } else {
       this.current.push(fromPlayer.cards[cardIndex])
     }
@@ -122,11 +126,22 @@ export class GameController {
   }
 
   async prepareTurnCPU(playerId: number, playerCard?: Card) {
+    let receiverId: number
     const self = this.players.find((player) => player.id === playerId)
+
+    // Deck is empty. Time to start game
+    if (!playerCard && this.deck.length === 1) {
+      this.trump = this.deck[0].suit === CardSuits.Spades ? null : this.deck[0].suit
+      receiverId = self.id
+      await this.takeCard(receiverId)
+      this.stage = Stage.mainGame
+      this.setNextPlayer()
+      return
+    }
+
     const opponents = this.players.filter((player) => player.id !== playerId)
 
     let card = playerCard || this.deck[0]
-    let receiverId: number
     let canPass = this.checkIfCanPassCard(opponents[0], card)
 
     if (canPass) {
@@ -155,10 +170,7 @@ export class GameController {
       await this.prepareTurnCPU(self.id, card)
     } else {
       await this.takeCard(self.id)
-      const currentPlayerIndex = this.players.findIndex((player) => player.id === playerId)
-      const nextPlayerIndex = currentPlayerIndex + 1
-      const nextPlayer = this.players[nextPlayerIndex] || this.players[0]
-      this.setActivePlayer(nextPlayer)
+      this.setNextPlayer()
     }
   }
 
@@ -169,5 +181,14 @@ export class GameController {
     const targetCard = target.cards[0]
     const canPass = targetCard.rank === card.rank - 1
     return canPass
+  }
+
+  setNextPlayer() {
+    const currentPlayerIndex = this.players.findIndex(
+      (player) => player.id === this.activePlayer.id,
+    )
+    const nextPlayerIndex = currentPlayerIndex + 1
+    const nextPlayer = this.players[nextPlayerIndex] || this.players[0]
+    this.setActivePlayer(nextPlayer)
   }
 }
