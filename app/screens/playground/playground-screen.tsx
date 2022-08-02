@@ -44,7 +44,7 @@ const PLAYER_FROM_NGADONG: Player = {
   id: 3,
   name: "Ngadong man",
   avatar: null,
-  isCPU: false,
+  isCPU: true,
   cards: [],
   stumps: [],
 }
@@ -117,13 +117,13 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
     }, [])
 
     React.useEffect(() => {
-      if (state?.activePlayer?.id && state.activePlayer.id !== PLAYER_FROM_NGADONG.id) {
+      if (state?.activePlayer?.id /* && state.activePlayer.id !== PLAYER_FROM_NGADONG.id */) {
         console.log("prepareTurnCPU", state)
         ctrlRef.current.prepareTurnCPU(state.activePlayer.id)
       }
     }, [state?.activePlayer?.id])
 
-    const me = state?.players?.find((player) => player.isCPU === false)
+    const me = state?.players?.[2]// find((player) => player.isCPU === false)
 
     if (!me) {
       return null
@@ -143,7 +143,7 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
               <Text style={TEXT} text={state?.players[0].name} />
               {state.players[0].cards.length > 0 ? (
                 <Card {...state.players[0].cards[0]} opened={state.stage === Stage.prepare} />
-              ) : (
+              ) : state.players[0].stumps.length > 0 ? <Card {...state.players[0].stumps[0]} opened={ false} /> : (
                 <Text style={TEXT} text="Нет карт" />
               )}
             </View>
@@ -166,7 +166,7 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
               <Text style={TEXT} text={state?.players[1].name} />
               {state.players[1].cards.length > 0 ? (
                 <Card {...state.players[1].cards[0]} opened={state.stage === Stage.prepare} />
-              ) : (
+              ) :  state.players[1].stumps.length > 0 ? <Card {...state.players[0].stumps[0]} opened={ false} /> : (
                 <Text style={TEXT} text="Нет карт" />
               )}
             </View>

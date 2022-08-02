@@ -76,6 +76,11 @@ export class GameController {
     }
     return deck
   }
+    
+  setActivePlayer(player: Player) {
+    this.activePlayer = player
+    this.updateState()
+  }
 
   async passCard({ card, from, to }: { from: number; to?: number; card: Card }): Promise<void> {
     const fromPlayer = this.players.find((player) => player.id === from)
@@ -116,11 +121,6 @@ export class GameController {
     }
   }
 
-  setActivePlayer(player: Player) {
-    this.activePlayer = player
-    this.updateState()
-  }
-
   async prepareTurnCPU(playerId: number, playerCard?: Card) {
     const self = this.players.find((player) => player.id === playerId)
     const opponents = this.players.filter((player) => player.id !== playerId)
@@ -157,7 +157,7 @@ export class GameController {
       await this.takeCard(self.id)
       const currentPlayerIndex = this.players.findIndex((player) => player.id === playerId)
       const nextPlayerIndex = currentPlayerIndex + 1
-      const nextPlayer = this.players[nextPlayerIndex]
+      const nextPlayer = this.players[nextPlayerIndex] || this.players[0]
       this.setActivePlayer(nextPlayer)
     }
   }
