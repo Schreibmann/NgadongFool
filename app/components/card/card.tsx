@@ -5,8 +5,8 @@ import {
   StyleProp,
   ImageStyle,
   PixelRatio,
-  TouchableOpacity,
   TextStyle,
+  ViewProps,
 } from "react-native"
 import { cardHeight, CardWidth } from "../../config/constants"
 import { CardProps } from "./card.props"
@@ -58,6 +58,13 @@ const STUMP_TEXT: TextStyle = {
     },
   ],
 }
+const SHADOW = {
+  shadowColor: "black",
+  shadowOffset: { width: 0, height: 20 },
+  shadowOpacity: 0.5,
+  shadowRadius: 20,
+  opacity: 0.5,
+}
 
 const JACKET_OFFSET = {
   top: cardHeight * -4,
@@ -65,8 +72,8 @@ const JACKET_OFFSET = {
 }
 
 export function Card(props: CardProps) {
-  const { offset, opened, isStump } = props
-  const cardRef = React.useRef(null)
+  const { offset, opened, isStump, dragging } = props
+  const cardRef = React.useRef<Animatable.AnimatableComponent<ViewProps, ViewStyle>>(null)
 
   const spriteOffset = opened ? offset : JACKET_OFFSET
   const CARD_IMAGE_STYLE: StyleProp<ImageStyle> = {
@@ -77,26 +84,23 @@ export function Card(props: CardProps) {
     ...spriteOffset,
   }
 
-  const handlePress = () => {
-    // TODO make turn with card props
-  }
+  React.useEffect(() => {
+    cardRef.current.flipInY(500)
+  }, [props.rank, props.suit])
 
   return (
-    <TouchableOpacity onPress={handlePress}>
-      <Animatable.View
-        ref={cardRef}
-        animation="flipInY"
-        duration={300}
-        style={CARD_CONTAINER_STYLE}
+    <Animatable.View
+      // @ts-ignore
+      ref={cardRef}
+      style={[CARD_CONTAINER_STYLE, dragging ? SHADOW : null]}
+    >
+      <ImageBackground
+        style={CARD_IMAGE_BACKGROUND_STYLE}
+        imageStyle={CARD_IMAGE_STYLE}
+        source={cardsSripeMap}
       >
-        <ImageBackground
-          style={CARD_IMAGE_BACKGROUND_STYLE}
-          imageStyle={CARD_IMAGE_STYLE}
-          source={cardsSripeMap}
-        >
-          {isStump && <Text style={STUMP_TEXT} text="ПЕНЁК" />}
-        </ImageBackground>
-      </Animatable.View>
-    </TouchableOpacity>
+        {isStump && <Text style={STUMP_TEXT} text="ПЕНЁК" />}
+      </ImageBackground>
+    </Animatable.View>
   )
 }

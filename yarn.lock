@@ -14712,6 +14712,13 @@ react-native-codegen@^0.0.6:
     jscodeshift "^0.11.0"
     nullthrows "^1.1.1"
 
+react-native-drag-drop-and-swap@^0.1.6:
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/react-native-drag-drop-and-swap/-/react-native-drag-drop-and-swap-0.1.6.tgz#94f3edbff50cedc062fb8571398765b774187099"
+  integrity sha512-LQd7agZGifYqRYOk7OK6hRYmFwTXxg1KQJ4xe4vcfPB2mtygV0k/BbwwgikuEf8G5wEFY/lvq3HjYisOxWCNXw==
+  dependencies:
+    prop-types "^15.6.0"
+
 react-native-flipper@^0.34.0:
   version "0.34.0"
   resolved "https://registry.yarnpkg.com/react-native-flipper/-/react-native-flipper-0.34.0.tgz#7df1f38ba5d97a9321125fe0fccbe47d99e6fa1d"
