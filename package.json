@@ -25,7 +25,8 @@
     "clean": "react-native-clean-project",
     "clean-all": "npx react-native clean-project-auto",
     "web": "expo start --web",
-    "eject": "expo eject"
+    "eject": "expo eject",
+    "build:local": "eas build -p android"
   },
   "dependencies": {
     "@expo/webpack-config": "^0.12.71",
