@@ -12,6 +12,9 @@
     "readyForLaunch": "Ready for launch.",
     "play": "PLAY"
   },
+  "playgroundScreen": {
+    "skip": "SKIP TURN"
+  },
   "demoScreen": {
     "howTo": "HOW TO",
     "title": "What’s In This Stack?",

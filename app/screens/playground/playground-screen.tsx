@@ -1,15 +1,17 @@
+/* eslint-disable react-native/no-color-literals */
 import React, { FC } from "react"
 import { View, ViewStyle, TextStyle, ImageStyle, SafeAreaView, FlatList } from "react-native"
 import { StackScreenProps } from "@react-navigation/stack"
 import { observer } from "mobx-react-lite"
 import {
-  Header,
   Screen,
   Text,
   GradientBackground,
   Card,
   AutoImage as Image,
+  Button,
 } from "../../components"
+import { Card as CardType, CardSuits } from "../../components/card/card.props"
 import { color, spacing, typography } from "../../theme"
 import { NavigatorParamList } from "../../navigators"
 import {
@@ -18,6 +20,7 @@ import {
   PlaygroundState,
   Stage,
 } from "../../services/game-controller/index"
+import { DragContainer, Draggable, DropZone } from "react-native-drag-drop-and-swap"
 
 const PLAYER_ONE_AVATAR = require("./ng-drum.gif")
 const PLAYER_TWO_AVATAR = require("./ng-scull.png")
@@ -44,7 +47,7 @@ const PLAYER_FROM_NGADONG: Player = {
   id: 3,
   name: "Ngadong man",
   avatar: null,
-  isCPU: true,
+  isCPU: false,
   cards: [],
   stumps: [],
 }
@@ -97,6 +100,11 @@ const TOP_CONTAINERE: ViewStyle = {
   padding: 4,
   paddingVertical: 12,
 }
+const NEXT: ViewStyle = {
+  paddingVertical: spacing[4],
+  paddingHorizontal: spacing[4],
+  backgroundColor: color.palette.deepPurple,
+}
 
 const players: Player[] = [CPU_IVAN, CPU_SEBASTIAN, PLAYER_FROM_NGADONG]
 
@@ -105,6 +113,9 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
     const [state, setState] = React.useState<PlaygroundState>(undefined)
 
     const ctrlRef = React.useRef<GameController>(null)
+
+    const me = state?.players?.find((player) => player.isCPU === false)
+    const isMyTurn = state?.activePlayer?.id === PLAYER_FROM_NGADONG.id
 
     const init = React.useCallback(async () => {
       const controller = new GameController(players, setState)
@@ -117,90 +128,138 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
     }, [])
 
     React.useEffect(() => {
-      if (
-        state?.stage === Stage.prepare &&
-        state?.activePlayer?.id /* && state.activePlayer.id !== PLAYER_FROM_NGADONG.id */
-      ) {
+      if (state?.stage === Stage.prepare && state?.activePlayer?.id && !isMyTurn) {
         ctrlRef.current.prepareTurnCPU(state.activePlayer.id)
       }
-    }, [state?.activePlayer?.id])
-
-    const me = state?.players?.[2] // find((player) => player.isCPU === false)
+    }, [state?.activePlayer?.id, state?.stage, isMyTurn])
 
     if (!me) {
       return null
     }
 
+    console.log(state)
+
     return (
-      <View testID="PlaygroundScreen" style={FULL}>
-        <GradientBackground colors={["#422443", "#281b34"]} />
-        <Screen style={MAIN_CONTAINER} preset="scroll" backgroundColor={color.transparent}>
-          <View testID="TopContainer" style={TOP_CONTAINERE}>
-            <View style={PLAYER}>
-              <Image
-                source={{ uri: state?.players[0].avatar }}
-                resizeMode="contain"
-                style={PLAYER_IMAGE}
-              />
-              <Text style={TEXT} text={state?.players[0].name} />
-              {state.players[0].cards.length > 0 ? (
-                <Card {...state.players[0].cards[0]} opened={state.stage === Stage.prepare} />
-              ) : state.players[0].stumps.length > 0 ? (
-                <Card {...state.players[0].stumps[0]} opened={false} />
-              ) : (
-                <Text style={TEXT} text="Нет карт" />
-              )}
+      <DragContainer>
+        <View testID="PlaygroundScreen" style={FULL}>
+          <GradientBackground colors={["#422443", "#281b34"]} />
+          <Screen style={MAIN_CONTAINER} preset="scroll" backgroundColor={color.transparent}>
+            <View testID="TopContainer" style={TOP_CONTAINERE}>
+              <View style={PLAYER}>
+                <Image
+                  source={{ uri: state?.players[0].avatar }}
+                  resizeMode="contain"
+                  style={PLAYER_IMAGE}
+                />
+                <Text style={TEXT} text={state?.players[0].name} />
+                <DropZone
+                  disabled={!isMyTurn || state.players[0].cards.length <= 0}
+                  onDrop={(card: CardType) =>
+                    ctrlRef.current.prepareTurnPlayer({ target: state?.players[0], card })
+                  }
+                >
+                  {state.players[0].cards.length > 0 ? (
+                    <Card {...state.players[0].cards[0]} opened={state.stage === Stage.prepare} />
+                  ) : state.players[0].stumps.length > 0 ? (
+                    <Card {...state.players[0].stumps[0]} opened={false} />
+                  ) : (
+                    <Text style={TEXT} text="Нет карт" />
+                  )}
+                </DropZone>
+              </View>
+              <View style={PLAYER}>
+                <Text
+                  style={TEXT}
+                  text={
+                    state.stage === Stage.prepare
+                      ? "Раздача"
+                      : state.stage === Stage.stumps
+                      ? "Сдаю пеньки"
+                      : "Игра"
+                  }
+                />
+                <Text style={TEXT} text={`Ходит:\n ${state?.activePlayer?.name || ""}`} />
+                {state.stage === Stage.mainGame && (
+                  <Text style={TEXT} text={`Козырь:\n ${state?.trump || "нет"}`} />
+                )}
+              </View>
+              <View style={PLAYER}>
+                <Image
+                  source={{ uri: state?.players[1].avatar }}
+                  resizeMode="contain"
+                  style={PLAYER_IMAGE}
+                />
+                <Text style={TEXT} text={state?.players[1].name} />
+                <DropZone
+                  disabled={!isMyTurn || state.players[1].cards.length <= 0}
+                  onDrop={(card: CardType) =>
+                    ctrlRef.current.prepareTurnPlayer({ target: state?.players[1], card })
+                  }
+                >
+                  {state.players[1].cards.length > 0 ? (
+                    <Card {...state.players[1].cards[0]} opened={state.stage === Stage.prepare} />
+                  ) : state.players[1].stumps.length > 0 ? (
+                    <Card {...state.players[0].stumps[0]} opened={false} />
+                  ) : (
+                    <Text style={TEXT} text="Нет карт" />
+                  )}
+                </DropZone>
+              </View>
             </View>
-            <View style={PLAYER}>
-              <Text
-                style={TEXT}
-                text={
-                  state?.activePlayer?.name
-                    ? `Ходит:\n ${state?.activePlayer?.name}`
-                    : "Сдаю пеньки"
-                }
-              />
-            </View>
-            <View style={PLAYER}>
-              <Image
-                source={{ uri: state?.players[1].avatar }}
-                resizeMode="contain"
-                style={PLAYER_IMAGE}
-              />
-              <Text style={TEXT} text={state?.players[1].name} />
-              {state.players[1].cards.length > 0 ? (
-                <Card {...state.players[1].cards[0]} opened={state.stage === Stage.prepare} />
-              ) : state.players[1].stumps.length > 0 ? (
-                <Card {...state.players[0].stumps[0]} opened={false} />
-              ) : (
-                <Text style={TEXT} text="Нет карт" />
-              )}
-            </View>
-          </View>
-          {state && (
-            <View testID="TurnContainer" style={TURN_CONTAINER}>
-              {state.current.length > 0 && <Card {...state.current.at(-1)} opened />}
-              <Card
-                {...state.deck.at(-1)}
-                opened={state.activePlayer?.id === PLAYER_FROM_NGADONG.id}
-              />
-            </View>
-          )}
-        </Screen>
-        <SafeAreaView style={FOOTER}>
-          <View style={FOOTER_CONTENT}>
             {state && (
-              <FlatList
-                horizontal
-                contentContainerStyle={FLAT_LIST}
-                data={[...me.cards, ...me.stumps]}
-                keyExtractor={(item) => `${item.rank}${item.suit}`}
-                renderItem={({ item }) => <Card {...item} opened={!item.isStump} />}
-              />
+              <View testID="TurnContainer" style={TURN_CONTAINER}>
+                {state.current.length > 0 && <Card {...state.current.at(-1)} opened />}
+                {state.stage !== Stage.mainGame && (
+                  <Draggable
+                    dragOn="onPressIn"
+                    data={{ ...state.deck[0] }}
+                    disabled={state.activePlayer?.id !== me.id}
+                  >
+                    <Card {...state.deck[0]} opened={state.stage === Stage.prepare} />
+                  </Draggable>
+                )}
+                
+              </View>
             )}
-          </View>
-        </SafeAreaView>
-      </View>
+
+          </Screen>
+          {state.activePlayer?.canContinueTurn && state.activePlayer?.id === me.id && <Button
+            
+                  testID="next-screen-button"
+                  style={NEXT}
+                  textStyle={TEXT}
+                  tx="playgroundScreen.skip"
+                  onPress={ctrlRef.current.setNextPlayer}
+                />}
+          <SafeAreaView style={FOOTER}>
+            <View style={FOOTER_CONTENT}>
+              {state && (
+                <DropZone
+                  disabled={!isMyTurn}
+                  onDrop={(card: CardType) =>
+                    ctrlRef.current.prepareTurnPlayer({ target: me, card })
+                  }
+                >
+                  <FlatList
+                    horizontal
+                    contentContainerStyle={FLAT_LIST}
+                    data={[...me.cards, ...me.stumps]}
+                    keyExtractor={(item) => `${item.rank}${item.suit}`}
+                    renderItem={({ item }) => (
+                      <Draggable
+                        data={{ ...item }}
+                        disabled={item.isStump || state.activePlayer.id !== me.id}
+                      >
+                        <Card {...item} opened={!item.isStump} />
+                      </Draggable>
+                    )}
+                  />
+                </DropZone>
+              )}
+            </View>
+          </SafeAreaView>
+        </View>
+      </DragContainer>
     )
   },
 )
