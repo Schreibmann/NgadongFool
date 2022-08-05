@@ -3,7 +3,14 @@ import React, { FC } from "react"
 import { View, ViewStyle, TextStyle, ImageStyle, SafeAreaView, FlatList } from "react-native"
 import { StackScreenProps } from "@react-navigation/stack"
 import { observer } from "mobx-react-lite"
-import { Screen, Text, GradientBackground, Card, AutoImage as Image } from "../../components"
+import {
+  Screen,
+  Text,
+  GradientBackground,
+  Card,
+  AutoImage as Image,
+  Button,
+} from "../../components"
 import { Card as CardType, CardSuits } from "../../components/card/card.props"
 import { color, spacing, typography } from "../../theme"
 import { NavigatorParamList } from "../../navigators"
@@ -93,6 +100,11 @@ const TOP_CONTAINERE: ViewStyle = {
   padding: 4,
   paddingVertical: 12,
 }
+const NEXT: ViewStyle = {
+  paddingVertical: spacing[4],
+  paddingHorizontal: spacing[4],
+  backgroundColor: color.palette.deepPurple,
+}
 
 const players: Player[] = [CPU_IVAN, CPU_SEBASTIAN, PLAYER_FROM_NGADONG]
 
@@ -116,10 +128,7 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
     }, [])
 
     React.useEffect(() => {
-      if (
-        state?.stage === Stage.prepare &&
-        state?.activePlayer?.id && !isMyTurn
-      ) {
+      if (state?.stage === Stage.prepare && state?.activePlayer?.id && !isMyTurn) {
         ctrlRef.current.prepareTurnCPU(state.activePlayer.id)
       }
     }, [state?.activePlayer?.id, state?.stage, isMyTurn])
@@ -145,7 +154,9 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
                 <Text style={TEXT} text={state?.players[0].name} />
                 <DropZone
                   disabled={!isMyTurn || state.players[0].cards.length <= 0}
-                  onDrop={(card: CardType) => ctrlRef.current.prepareTurnPlayer({target: state?.players[0], card})}
+                  onDrop={(card: CardType) =>
+                    ctrlRef.current.prepareTurnPlayer({ target: state?.players[0], card })
+                  }
                 >
                   {state.players[0].cards.length > 0 ? (
                     <Card {...state.players[0].cards[0]} opened={state.stage === Stage.prepare} />
@@ -157,12 +168,20 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
                 </DropZone>
               </View>
               <View style={PLAYER}>
-              <Text style={TEXT} text={state.stage === Stage.prepare ? 'Раздача' : state.stage === Stage.stumps ? 'Сдаю пеньки' : 'Игра'} />
                 <Text
                   style={TEXT}
-                  text={`Ходит:\n ${state?.activePlayer?.name || ''}`}
+                  text={
+                    state.stage === Stage.prepare
+                      ? "Раздача"
+                      : state.stage === Stage.stumps
+                      ? "Сдаю пеньки"
+                      : "Игра"
+                  }
                 />
-                {state.stage === Stage.mainGame && <Text style={TEXT} text={`Козырь:\n ${state?.trump || 'нет'}`} />}
+                <Text style={TEXT} text={`Ходит:\n ${state?.activePlayer?.name || ""}`} />
+                {state.stage === Stage.mainGame && (
+                  <Text style={TEXT} text={`Козырь:\n ${state?.trump || "нет"}`} />
+                )}
               </View>
               <View style={PLAYER}>
                 <Image
@@ -173,7 +192,9 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
                 <Text style={TEXT} text={state?.players[1].name} />
                 <DropZone
                   disabled={!isMyTurn || state.players[1].cards.length <= 0}
-                  onDrop={(card: CardType) => ctrlRef.current.prepareTurnPlayer({target: state?.players[1], card})}
+                  onDrop={(card: CardType) =>
+                    ctrlRef.current.prepareTurnPlayer({ target: state?.players[1], card })
+                  }
                 >
                   {state.players[1].cards.length > 0 ? (
                     <Card {...state.players[1].cards[0]} opened={state.stage === Stage.prepare} />
@@ -188,34 +209,52 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
             {state && (
               <View testID="TurnContainer" style={TURN_CONTAINER}>
                 {state.current.length > 0 && <Card {...state.current.at(-1)} opened />}
-                {state.stage !== Stage.mainGame && <Draggable dragOn='onPressIn' data={{ ...state.deck[0] }} disabled={state.activePlayer?.id !== me.id}>
-                  <Card {...state.deck[0]} opened={state.stage === Stage.prepare} />
-                </Draggable>}
+                {state.stage !== Stage.mainGame && (
+                  <Draggable
+                    dragOn="onPressIn"
+                    data={{ ...state.deck[0] }}
+                    disabled={state.activePlayer?.id !== me.id}
+                  >
+                    <Card {...state.deck[0]} opened={state.stage === Stage.prepare} />
+                  </Draggable>
+                )}
+                
               </View>
             )}
+
           </Screen>
+          {state.activePlayer?.canContinueTurn && state.activePlayer?.id === me.id && <Button
+            
+                  testID="next-screen-button"
+                  style={NEXT}
+                  textStyle={TEXT}
+                  tx="playgroundScreen.skip"
+                  onPress={ctrlRef.current.setNextPlayer}
+                />}
           <SafeAreaView style={FOOTER}>
             <View style={FOOTER_CONTENT}>
               {state && (
                 <DropZone
-                disabled={!isMyTurn}
-                onDrop={(card: CardType) => ctrlRef.current.prepareTurnPlayer({target: me, card})}
-              >
-                <FlatList
-                  horizontal
-                  contentContainerStyle={FLAT_LIST}
-                  data={[...me.cards, ...me.stumps]}
-                  keyExtractor={(item) => `${item.rank}${item.suit}`}
-                  renderItem={({ item }) => (
-                    <Draggable
-                      data={{ ...item }}
-                      disabled={item.isStump || state.activePlayer.id !== me.id}
-                    >
-                      <Card {...item} opened={!item.isStump} />
-                    </Draggable>
-                  )}
+                  disabled={!isMyTurn}
+                  onDrop={(card: CardType) =>
+                    ctrlRef.current.prepareTurnPlayer({ target: me, card })
+                  }
+                >
+                  <FlatList
+                    horizontal
+                    contentContainerStyle={FLAT_LIST}
+                    data={[...me.cards, ...me.stumps]}
+                    keyExtractor={(item) => `${item.rank}${item.suit}`}
+                    renderItem={({ item }) => (
+                      <Draggable
+                        data={{ ...item }}
+                        disabled={item.isStump || state.activePlayer.id !== me.id}
+                      >
+                        <Card {...item} opened={!item.isStump} />
+                      </Draggable>
+                    )}
                   />
-                  </DropZone>
+                </DropZone>
               )}
             </View>
           </SafeAreaView>

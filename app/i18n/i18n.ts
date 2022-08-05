@@ -2,17 +2,20 @@ import * as Localization from "expo-localization"
 import i18n from "i18n-js"
 import en from "./en.json"
 import ja from "./ja.json"
+import ru from "./ru.json"
 
 i18n.fallbacks = true
-i18n.translations = { en, ja }
+i18n.translations = { en, ja, ru }
 
-i18n.locale = Localization.locale || "en"
+i18n.locale = "ru" // Localization.locale || "ru"
+
+console.log(Localization.locale)
 
 /**
  * Builds up valid keypaths for translations.
  * Update to your default locale of choice if not English.
  */
-type DefaultLocale = typeof en
+type DefaultLocale = typeof ru
 export type TxKeyPath = RecursiveKeyOf<DefaultLocale>
 
 // via: https://stackoverflow.com/a/65333050
