@@ -72,7 +72,7 @@ const JACKET_OFFSET = {
 }
 
 export function Card(props: CardProps) {
-  const { offset, opened, isStump, dragging, rank, suit, animation = true } = props
+  const { offset, opened, isStump, rank, suit, animation = true } = props
   const cardRef = React.useRef<Animatable.AnimatableComponent<ViewProps, ViewStyle>>(null)
 
   const spriteOffset = opened ? offset : JACKET_OFFSET
@@ -88,7 +88,7 @@ export function Card(props: CardProps) {
     if (animation) {
       cardRef.current.flipInY(500)
     }
-  }, [rank, suit]) 
+  }, [rank, suit])
 
   return (
     <Animatable.View

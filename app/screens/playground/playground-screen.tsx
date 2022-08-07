@@ -11,7 +11,7 @@ import {
   AutoImage as Image,
   Button,
 } from "../../components"
-import { Card as CardType, CardSuits } from "../../components/card/card.props"
+import { Card as CardType } from "../../components/card/card.props"
 import { color, spacing, typography } from "../../theme"
 import { NavigatorParamList } from "../../navigators"
 import {
@@ -113,6 +113,18 @@ const NEXT: ViewStyle = {
   paddingHorizontal: spacing[4],
   backgroundColor: color.palette.deepPurple,
 }
+const MAIN_GAME_TURN_CONTAINER: ViewStyle = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  minWidth: 320,
+  minHeight: 162,
+  borderWidth: 0.5,
+  borderColor: "lightgray",
+  borderStyle: "dashed",
+  borderRadius: 8,
+}
 
 const players: Player[] = [CPU_IVAN, CPU_SEBASTIAN, PLAYER_FROM_NGADONG]
 
@@ -124,8 +136,20 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
 
     const ctrlRef = React.useRef<GameController>(null)
 
-    const me = state?.players?.find((player) => player.isCPU === false)
+    const me = state?.players?.find((player) => player.id === PLAYER_FROM_NGADONG.id)
     const isMyTurn = state?.activePlayer?.id === PLAYER_FROM_NGADONG.id
+
+    const skip = () => ctrlRef.current.setNextPlayer()
+    const take = () => ctrlRef.current.mainGameTakeCard()
+    const showStumps = () => ctrlRef.current.showStumps()
+
+    const prepareCPUturn = async () => {
+      await ctrlRef.current.prepareTurnCPU(state.activePlayer.id)
+    }
+
+    const mainGameCpuTurn = async () => {
+      await ctrlRef.current.mainGameCpuTurn()
+    }
 
     const init = React.useCallback(async () => {
       const controller = new GameController(players, setState)
@@ -138,16 +162,19 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
     }, [])
 
     React.useEffect(() => {
-      if (state?.stage === Stage.prepare && state?.activePlayer?.id && !isMyTurn) {
-        ctrlRef.current.prepareTurnCPU(state.activePlayer.id)
+      if (!isMyTurn) {
+        if (state?.stage === Stage.prepare) {
+          prepareCPUturn()
+        }
+        if (state?.stage === Stage.mainGame) {
+          mainGameCpuTurn()
+        }
       }
-    }, [state?.activePlayer?.id, state?.stage, isMyTurn])
+    }, [state?.activePlayer?.id, isMyTurn])
 
     if (!me) {
       return null
     }
-
-    console.log(state)
 
     return (
       <DragContainer>
@@ -220,30 +247,48 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
             </View>
             {state && (
               <View testID="TurnContainer" style={TURN_CONTAINER}>
-                {state.stage === Stage.mainGame &&
-                  state.current.map((card) => (
-                    <Card key={cardKeyExtractor(card)} {...card} opened />
-                  ))}
                 {state.stage === Stage.prepare && (
                   <Draggable
-                  useNativeDriver={false}
+                    useNativeDriver={false}
                     dragOn="onPressIn"
                     data={{ ...state.deck[0] }}
-                    disabled={state.activePlayer?.id !== me.id}
+                    disabled={!isMyTurn}
                   >
-                    <Card {...state.deck[0]} opened={state.stage === Stage.prepare} />
+                    <Card {...state.deck[0]} opened />
                   </Draggable>
                 )}
-                {state.stage !== Stage.mainGame && (
+                {state.stage === Stage.mainGame && (
+                  <DropZone
+                    style={MAIN_GAME_TURN_CONTAINER}
+                    useNativeDriver={false}
+                    disabled={!isMyTurn}
+                    onDrop={(card: CardType) => ctrlRef.current.mainGamePlayerPassCard(card)}
+                  >
+                    {state.current.map((card) => (
+                      <Card key={cardKeyExtractor(card)} {...card} opened />
+                    ))}
+                  </DropZone>
+                )}
+                {!!state.stage && (
                   <View testID="DeckContainer" style={DECK_CONTAINER}>
-                    {state.deck.map((card, index) =>
+                    {[...state.deck, ...state.beaten].map((card, index) =>
                       index ? (
                         <View
                           testID="CardWrapper"
                           // eslint-disable-next-line react-native/no-inline-styles
-                          style={{ position: "absolute", top: index + 0.7, left: index + 0.7, zIndex: 1000 - index }}
+                          style={{
+                            position: "absolute",
+                            top: index + 0.1,
+                            left: index + 0.1,
+                            zIndex: 1000 - index,
+                          }}
                         >
-                          <Card key={cardKeyExtractor(card)} {...card} opened={false} animation={false} />
+                          <Card
+                            key={cardKeyExtractor(card)}
+                            {...card}
+                            opened={false}
+                            animation={false}
+                          />
                         </View>
                       ) : null,
                     )}
@@ -252,24 +297,45 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
               </View>
             )}
           </Screen>
-          {state.activePlayer?.canContinueTurn && state.activePlayer?.id === me.id && (
+          {state.activePlayer?.canContinueTurn && isMyTurn && (
             <Button
               testID="skip-move-button"
               style={NEXT}
               textStyle={TEXT}
               tx="playgroundScreen.skip"
-              onPress={ctrlRef.current.setNextPlayer}
+              onPress={skip}
             />
           )}
+          {state.stage === Stage.mainGame && isMyTurn && !!state.current.length && (
+            <Button
+              testID="take-card-button"
+              style={NEXT}
+              textStyle={TEXT}
+              tx="playgroundScreen.take"
+              onPress={take}
+            />
+          )}
+          {state.stage === Stage.mainGame &&
+            isMyTurn &&
+            !state.activePlayer.cards.length &&
+            !!state.activePlayer.stumps.length && (
+              <Button
+                testID="show-stumps-button"
+                style={NEXT}
+                textStyle={TEXT}
+                tx="playgroundScreen.showStumps"
+                onPress={showStumps}
+              />
+            )}
           <SafeAreaView style={FOOTER}>
             <View style={FOOTER_CONTENT}>
               {state && (
                 <DropZone
-                useNativeDriver={false}
-                  disabled={!isMyTurn}
-                  onDrop={(card: CardType) =>
+                  useNativeDriver={false}
+                  disabled={!isMyTurn || state.stage !== Stage.prepare}
+                  onDrop={(card: CardType) => {
                     ctrlRef.current.prepareTurnPlayer({ target: me, card })
-                  }
+                  }}
                 >
                   <FlatList
                     horizontal
@@ -279,12 +345,9 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
                     renderItem={({ item }) => (
                       <Draggable
                         data={{ ...item }}
+                        dragOn="onPressIn"
                         useNativeDriver={false}
-                        disabled={
-                          item.isStump ||
-                          state.activePlayer.id !== me.id ||
-                          (state.stage === Stage.prepare && !state.activePlayer?.canContinueTurn)
-                        }
+                        disabled={item.isStump || !isMyTurn}
                       >
                         <Card {...item} opened={!item.isStump} />
                       </Draggable>
