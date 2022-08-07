@@ -13,7 +13,9 @@
     "play": "ИГРАТЬ"
   },
   "playgroundScreen": {
-    "skip": "ЗАВЕРШИТЬ ХОД"
+    "skip": "ЗАВЕРШИТЬ ХОД",
+    "take": "ВЗЯТЬ КАРТУ",
+    "showStumps": "ОТКРЫТЬ ПЕНЬКИ"
   },
   "demoScreen": {
     "howTo": "HOW TO",
