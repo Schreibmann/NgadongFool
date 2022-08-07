@@ -41,11 +41,15 @@ export interface Card {
 
 export interface CardProps extends Card {
   /**
+   * Condition to show face or jacket
+   */
+  opened: boolean
+  /**
    * Component is being dragged flag
    */
   dragging?: boolean
   /**
-   * Condition to show face or jacket
+   * No animation if false
    */
-  opened: boolean
+  animation?: boolean
 }
