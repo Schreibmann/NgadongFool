@@ -10,6 +10,7 @@ export interface Player {
   isCPU: boolean
   cards: Card[]
   stumps: Card[]
+  strikes: number
 }
 
 export interface CurrentPlayer extends Player {
@@ -35,6 +36,7 @@ export class GameController {
   public deck: Card[]
   public players: Player[]
   public current: Card[]
+  public beaten: Card[]
   public stage: Stage
   public activePlayer: CurrentPlayer
   public trump: CardSuits
@@ -45,6 +47,7 @@ export class GameController {
     this.players = players
     this.deck = this.shuffle(CardDeck36)
     this.current = []
+    this.beaten = []
     this.setState = setState
   }
 
@@ -100,6 +103,11 @@ export class GameController {
       this.current.push(fromPlayer.cards[cardIndex])
     }
     fromPlayer.cards = fromPlayer.cards.filter((_, index) => index !== cardIndex)
+    if (this.current.length === this.players.length) {
+      this.beaten = [...this.beaten, ...this.current]
+      this.current = []
+      await this.setNextPlayer()
+    }
     this.updateState()
     await delay(300)
   }
@@ -132,10 +140,10 @@ export class GameController {
     const self = this.players.find((player) => player.id === 3)
 
     // Deck is empty. Time to start game
-    if (this.deck.length === 1) {
+    if (!this.activePlayer.canContinueTurn && this.deck.length === 1) {
       if (target.id !== self.id) {
         console.log("Didnt took last card")
-        // TODO throw bad cards
+        self.strikes++
       }
       this.trump = this.deck[0].suit === CardSuits.Spades ? null : this.deck[0].suit
       await this.takeCard(self.id)
@@ -153,7 +161,7 @@ export class GameController {
     if (target.id === self.id) {
       if (canPassToSomeOne) {
         console.log("Could pass but saved card")
-        // TODO throw bad cards
+        self.strikes++
       }
       await this.takeCard(target.id)
       await this.setNextPlayer()
@@ -162,17 +170,16 @@ export class GameController {
       const canPassToTarget = this.checkIfCanPassCard(target, card)
       if (!canPassToTarget) {
         console.log("You shell not pass!")
-        // TODO throw bad cards
+        self.strikes++
         return false
       }
     }
 
-    if (this.activePlayer.canContinueTurn) { 
+    if (this.activePlayer.canContinueTurn) {
       await this.passCard({ card, from: self.id, to: target.id })
     } else {
       await this.takeCard(target.id)
     }
-    
 
     const myCard = self.cards[0]
 
@@ -181,6 +188,7 @@ export class GameController {
         this.checkIfCanPassCard(opponents[0], myCard) ||
         this.checkIfCanPassCard(opponents[1], myCard)
       if (!canPassToSomeOne) {
+        this.activePlayer.canContinueTurn = false
         await this.setNextPlayer()
         return false
       } else {
@@ -194,6 +202,7 @@ export class GameController {
   }
 
   async prepareTurnCPU(playerId: number, playerCard?: Card) {
+    console.log("prepareTurnCPU", playerId, playerCard)
     let receiverId: number
     const self = this.players.find((player) => player.id === playerId)
 
@@ -211,6 +220,7 @@ export class GameController {
 
     let card = playerCard || this.deck[0]
     let canPass = this.checkIfCanPassCard(opponents[0], card)
+    let canPassToHimself = false
 
     if (canPass) {
       receiverId = opponents[0].id
@@ -220,10 +230,7 @@ export class GameController {
         receiverId = opponents[1].id
       } else {
         if (!playerCard) {
-          canPass = this.checkIfCanPassCard(self, card)
-          if (canPass) {
-            receiverId = self.id
-          }
+          canPassToHimself = this.checkIfCanPassCard(self, card)
         }
       }
     }
@@ -233,7 +240,7 @@ export class GameController {
         const skip = calcProbability(50)
         if (skip) {
           console.log(`${this.activePlayer.name} skip pass card to ${receiverId}`)
-          // TODO throw bad cards
+          self.strikes++
         } else {
           await this.passCard({ card, from: self.id, to: receiverId })
         }
@@ -244,7 +251,11 @@ export class GameController {
       await this.prepareTurnCPU(self.id, card)
     } else {
       await this.takeCard(self.id)
-      await this.setNextPlayer()
+      if (canPassToHimself) {
+        await this.prepareTurnCPU(self.id)
+      } else {
+        await this.setNextPlayer()
+      }
     }
   }
 
@@ -253,7 +264,7 @@ export class GameController {
       return false
     }
     const targetCard = target.cards[0]
-    let canPass
+    let canPass: boolean
     if (card.rank === CardRanks.six) {
       canPass = targetCard.rank === CardRanks.ace
     } else {
@@ -266,6 +277,10 @@ export class GameController {
     const currentPlayerIndex = this.players.findIndex(
       (player) => player.id === this.activePlayer.id,
     )
+    if (this.activePlayer.canContinueTurn) {
+      this.players[currentPlayerIndex].strikes++
+    }
+
     const nextPlayerIndex = currentPlayerIndex + 1
     const nextPlayer = { ...(this.players[nextPlayerIndex] || this.players[0]) }
     await this.setActivePlayer(nextPlayer)

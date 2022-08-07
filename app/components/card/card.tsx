@@ -60,10 +60,10 @@ const STUMP_TEXT: TextStyle = {
 }
 const SHADOW = {
   shadowColor: "black",
-  shadowOffset: { width: 0, height: 20 },
+  shadowOffset: { width: 5, height: 10 },
   shadowOpacity: 0.5,
-  shadowRadius: 20,
-  opacity: 0.5,
+  shadowRadius: 10,
+  opacity: 1,
 }
 
 const JACKET_OFFSET = {
@@ -72,7 +72,7 @@ const JACKET_OFFSET = {
 }
 
 export function Card(props: CardProps) {
-  const { offset, opened, isStump, dragging } = props
+  const { offset, opened, isStump, dragging, rank, suit, animation = true } = props
   const cardRef = React.useRef<Animatable.AnimatableComponent<ViewProps, ViewStyle>>(null)
 
   const spriteOffset = opened ? offset : JACKET_OFFSET
@@ -85,14 +85,16 @@ export function Card(props: CardProps) {
   }
 
   React.useEffect(() => {
-    cardRef.current.flipInY(500)
-  }, [props.rank, props.suit])
+    if (animation) {
+      cardRef.current.flipInY(500)
+    }
+  }, [rank, suit]) 
 
   return (
     <Animatable.View
       // @ts-ignore
       ref={cardRef}
-      style={[CARD_CONTAINER_STYLE, dragging ? SHADOW : null]}
+      style={[CARD_CONTAINER_STYLE, SHADOW]}
     >
       <ImageBackground
         style={CARD_IMAGE_BACKGROUND_STYLE}
