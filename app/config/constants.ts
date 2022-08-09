@@ -1,4 +1,8 @@
 import { Card, CardRanks, CardSuits } from "../components/card/card.props"
+import { Player } from "../services/game-controller"
+
+const PLAYER_ONE_AVATAR = require("../assets/avatars/ng-drum.gif")
+const PLAYER_TWO_AVATAR = require("../assets/avatars/ng-scull.png")
 
 export const CardWidth = 96
 export const cardHeight = 150
@@ -304,3 +308,35 @@ export const SPADES: Card[] = [
 ]
 
 export const CardDeck36 = [...SPADES, ...CLUBS, ...DIAMONDS, ...HEARTS]
+
+
+
+export const CPU_IVAN: Player = {
+  id: 1,
+  name: "Ivan",
+  avatar: PLAYER_ONE_AVATAR,
+  isCPU: true,
+  cards: [],
+  stumps: [],
+  strikes: 0,
+}
+
+export const CPU_SEBASTIAN: Player = {
+  id: 2,
+  name: "Sebastian",
+  avatar: PLAYER_TWO_AVATAR,
+  isCPU: true,
+  cards: [],
+  stumps: [],
+  strikes: 0,
+}
+
+export const PLAYER_FROM_NGADONG: Player = {
+  id: 3,
+  name: "Ngadong man",
+  avatar: null,
+  isCPU: false,
+  cards: [],
+  stumps: [],
+  strikes: 0,
+}

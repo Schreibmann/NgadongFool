@@ -10,6 +10,7 @@ import {
   Card,
   AutoImage as Image,
   Button,
+  Header,
 } from "../../components"
 import { Card as CardType } from "../../components/card/card.props"
 import { color, spacing, typography } from "../../theme"
@@ -21,39 +22,8 @@ import {
   Stage,
 } from "../../services/game-controller/index"
 import { DragContainer, Draggable, DropZone } from "react-native-drag-drop-and-swap"
+import { CPU_IVAN, CPU_SEBASTIAN, PLAYER_FROM_NGADONG } from "../../config/constants"
 
-const PLAYER_ONE_AVATAR = require("./ng-drum.gif")
-const PLAYER_TWO_AVATAR = require("./ng-scull.png")
-
-const CPU_IVAN: Player = {
-  id: 1,
-  name: "Ivan",
-  avatar: PLAYER_ONE_AVATAR,
-  isCPU: true,
-  cards: [],
-  stumps: [],
-  strikes: 0,
-}
-
-const CPU_SEBASTIAN: Player = {
-  id: 2,
-  name: "Sebastian",
-  avatar: PLAYER_TWO_AVATAR,
-  isCPU: true,
-  cards: [],
-  stumps: [],
-  strikes: 0,
-}
-
-const PLAYER_FROM_NGADONG: Player = {
-  id: 3,
-  name: "Ngadong man",
-  avatar: null,
-  isCPU: false,
-  cards: [],
-  stumps: [],
-  strikes: 0,
-}
 
 const FULL: ViewStyle = { flex: 1 }
 const MAIN_CONTAINER: ViewStyle = {
@@ -125,6 +95,18 @@ const MAIN_GAME_TURN_CONTAINER: ViewStyle = {
   borderStyle: "dashed",
   borderRadius: 8,
 }
+const HEADER: TextStyle = {
+  paddingBottom: spacing[5] - 1,
+  paddingHorizontal: spacing[4],
+  paddingTop: spacing[3],
+}
+const HEADER_TITLE: TextStyle = {
+  fontSize: 12,
+  fontWeight: "bold",
+  letterSpacing: 1.5,
+  lineHeight: 15,
+  textAlign: "center",
+}
 
 const players: Player[] = [CPU_IVAN, CPU_SEBASTIAN, PLAYER_FROM_NGADONG]
 
@@ -139,6 +121,7 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
     const me = state?.players?.find((player) => player.id === PLAYER_FROM_NGADONG.id)
     const isMyTurn = state?.activePlayer?.id === PLAYER_FROM_NGADONG.id
 
+    const goBack = () => navigation.goBack()
     const skip = () => ctrlRef.current.setNextPlayer()
     const take = () => ctrlRef.current.mainGameTakeCard()
     const showStumps = () => ctrlRef.current.showStumps()
@@ -181,6 +164,13 @@ export const PlaygroundScreen: FC<StackScreenProps<NavigatorParamList, "playgrou
         <View testID="PlaygroundScreen" style={FULL}>
           <GradientBackground colors={["#422443", "#281b34"]} />
           <Screen style={MAIN_CONTAINER} preset="scroll" backgroundColor={color.transparent}>
+            <Header
+            headerTx="demoListScreen.title"
+            leftIcon="back"
+            onLeftPress={goBack}
+            style={HEADER}
+            titleStyle={HEADER_TITLE}
+          />
             <View testID="TopContainer" style={TOP_CONTAINER}>
               <View style={PLAYER}>
                 <Image
