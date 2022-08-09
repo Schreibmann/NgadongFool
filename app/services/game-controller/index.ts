@@ -295,7 +295,8 @@ export class GameController {
 
     if (this.deck.length === 0) {
       console.log("WTF")
-      return
+      return await this.setNextPlayer()
+      
     }
     // Deck is empty. Time to start game
     if (!playerCard && this.deck.length === 1) {
@@ -303,8 +304,7 @@ export class GameController {
       receiverId = self.id
       await this.takeCard(receiverId)
       this.stage = Stage.mainGame
-      await this.setNextPlayer()
-      return
+      return await this.setNextPlayer()
     }
 
     const opponents = this.players.filter((player) => player.id !== playerId)
@@ -339,13 +339,13 @@ export class GameController {
         await this.takeCard(receiverId)
       }
       card = self.cards[0]
-      await this.prepareTurnCPU(self.id, card)
+      return await this.prepareTurnCPU(self.id, card)
     } else {
       await this.takeCard(self.id)
       if (canPassToHimself) {
-        await this.prepareTurnCPU(self.id)
+        return await this.prepareTurnCPU(self.id)
       } else {
-        await this.setNextPlayer()
+        return await this.setNextPlayer()
       }
     }
   }
