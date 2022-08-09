@@ -7,5 +7,5 @@ export const initFonts = async () => {
   // ⬇
   await Font.loadAsync({
     Ngadong: require("./yourshirt_sinsideout_.otf"),
-   })
+  })
 }

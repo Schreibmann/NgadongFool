@@ -1,8 +1,8 @@
 import { Card, CardRanks, CardSuits } from "../components/card/card.props"
 import { Player } from "../services/game-controller"
 
-const PLAYER_ONE_AVATAR = require("../assets/avatars/ng-drum.gif")
-const PLAYER_TWO_AVATAR = require("../assets/avatars/ng-scull.png")
+const PLAYER_ONE_AVATAR = require("../assets/avatars/cpu_avatar_1.png")
+const PLAYER_TWO_AVATAR = require("../assets/avatars/cpu_avatar_2.png")
 
 export const CardWidth = 96
 export const cardHeight = 150
@@ -308,8 +308,6 @@ export const SPADES: Card[] = [
 ]
 
 export const CardDeck36 = [...SPADES, ...CLUBS, ...DIAMONDS, ...HEARTS]
-
-
 
 export const CPU_IVAN: Player = {
   id: 1,

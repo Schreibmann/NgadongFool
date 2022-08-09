@@ -126,7 +126,9 @@ export class GameController {
         } else {
           console.log(`${self.name} quit game`)
           await this.setNextPlayer()
-          this.players = this.players.filter((player) => !!player.cards.length && !!player.stumps.length)
+          this.players = this.players.filter(
+            (player) => !!player.cards.length && !!player.stumps.length,
+          )
         }
       }
     } else {
@@ -160,7 +162,7 @@ export class GameController {
 
   async showStumps() {
     const self = this.players.find((player) => player.id === this.activePlayer.id)
-    self.cards = self.stumps.map(stump => ({...stump, isStump: false}))
+    self.cards = self.stumps.map((stump) => ({ ...stump, isStump: false }))
     self.stumps = []
     console.log(`${self.name} opened stumps`, self.cards)
     this.updateState()

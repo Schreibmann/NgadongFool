@@ -13,6 +13,7 @@
     "play": "ДЕГРАДИРОВАТЬ!"
   },
   "playgroundScreen": {
+    "title": "xz",
     "skip": "ЗАВЕРШИТЬ ХОД",
     "take": "ВЗЯТЬ КАРТУ",
     "showStumps": "ОТКРЫТЬ ПЕНЬКИ"
