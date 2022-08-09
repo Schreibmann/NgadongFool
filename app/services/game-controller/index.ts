@@ -45,7 +45,6 @@ export class GameController {
 
   constructor(players: Player[], setState: React.Dispatch<React.SetStateAction<PlaygroundState>>) {
     this.players = players
-    this.deck = this.shuffle(CardDeck36)
     this.current = []
     this.beaten = []
     this.setState = setState
@@ -53,7 +52,7 @@ export class GameController {
 
   async init() {
     this.stage = Stage.stumps
-    this.trump = CardSuits.Hearts
+    this.deck = this.shuffle(CardDeck36)
     await this.takeStumps()
     await this.takeCard()
     const randomPlayer = this.players[Math.floor(Math.random() * this.players.length)]
@@ -296,7 +295,6 @@ export class GameController {
     if (this.deck.length === 0) {
       console.log("WTF")
       return await this.setNextPlayer()
-      
     }
     // Deck is empty. Time to start game
     if (!playerCard && this.deck.length === 1) {
