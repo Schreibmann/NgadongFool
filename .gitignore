@@ -83,7 +83,4 @@ web-build/
 app/config/env.*.js
 !env.js
 node_modules
-node_modules
-node_modules
-node_modules
-node_modules
+node_modules/
