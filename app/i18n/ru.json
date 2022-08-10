@@ -10,9 +10,10 @@
   "welcomeScreen": {
     "poweredBy": "PITECANTROPARIUM",
     "readyForLaunch": "Ready for launch.",
-    "play": "ИГРАТЬ"
+    "play": "ДЕГРАДИРОВАТЬ!"
   },
   "playgroundScreen": {
+    "title": "xz",
     "skip": "ЗАВЕРШИТЬ ХОД",
     "take": "ВЗЯТЬ КАРТУ",
     "showStumps": "ОТКРЫТЬ ПЕНЬКИ"

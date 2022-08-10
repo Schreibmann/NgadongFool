@@ -1,98 +1,74 @@
 import React, { FC } from "react"
-import { View, ViewStyle, TextStyle, SafeAreaView, ImageStyle } from "react-native"
+import { View, ViewStyle, TextStyle, SafeAreaView, ImageStyle, ImageBackground } from "react-native"
 import { StackScreenProps } from "@react-navigation/stack"
 import { observer } from "mobx-react-lite"
-import {
-  Button,
-  Header,
-  Screen,
-  Text,
-  GradientBackground,
-  AutoImage as Image,
-} from "../../components"
+import { Text, Button, Screen, GradientBackground, AutoImage as Image } from "../../components"
 import { color, spacing, typography } from "../../theme"
 import { NavigatorParamList } from "../../navigators"
 
-const LOGO_RUNGADONG = require("./ng-run.gif")
-const LOGO_CARDGADONG = require("./ng-spread.gif")
+const LOGO_TOP = require("../../assets/images/logo.png")
+const LOGO_TEXT = require("../../assets/images/game-title.png")
+const LOGO_MAN = require("../../assets/images/ng-man.png")
+const BUTTON_BACKGROUND = require("../../assets/images/button-background.png")
 
 const FULL: ViewStyle = { flex: 1 }
-const LOGO_CONTAINER: ViewStyle = {
-  ...FULL,
-  alignItems: "center",
-  justifyContent: "center",
-  marginTop: 20,
-  /* shadowColor: "black",
-  shadowOffset: {
-    width: 2,
-    height: -2,
-  },
-  shadowOpacity: 1,
-  shadowRadius: 1, */
-}
+
 const CONTAINER: ViewStyle = {
+  ...FULL,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "space-between",
   backgroundColor: color.transparent,
   paddingHorizontal: spacing[4],
 }
+const LOGO_CONTAINER: ViewStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+}
 const TEXT: TextStyle = {
-  color: color.palette.white,
-  fontFamily: typography.primary,
+  color: color.palette.lighterGrey,
+  fontFamily: typography.ngadong,
 }
-const BOLD: TextStyle = { fontWeight: "bold" }
-const HEADER: TextStyle = {
-  paddingTop: spacing[4],
-  paddingBottom: spacing[4],
-  paddingHorizontal: 0,
-}
-const HEADER_TITLE: TextStyle = {
-  ...TEXT,
-  ...BOLD,
-  fontSize: 12,
-  lineHeight: 15,
-  textAlign: "center",
-  letterSpacing: 3.8,
-}
-const TITLE_WRAPPER: TextStyle = {
-  ...TEXT,
-  textAlign: "center",
-}
-const TITLE: TextStyle = {
-  ...TEXT,
-  ...BOLD,
-  fontSize: 28,
-  lineHeight: 32,
-  textAlign: "center",
-}
-const SUBTITLE: TextStyle = {
-  ...TITLE,
-  fontSize: 20,
-  lineHeight: 20,
-}
+// const BOLD: TextStyle = { fontWeight: "bold" }
 const PLAY: ViewStyle = {
+  backgroundColor: "transparent",
   paddingVertical: spacing[4],
   paddingHorizontal: spacing[4],
-  backgroundColor: color.palette.deepPurple,
 }
 const PLAY_TEXT: TextStyle = {
   ...TEXT,
-  ...BOLD,
-  fontSize: 13,
-  letterSpacing: 5,
+  fontSize: 24,
+  letterSpacing: 1,
+  marginTop: 18,
 }
-const FOOTER: ViewStyle = { backgroundColor: "#20162D" }
+const FOOTER: ViewStyle = { backgroundColor: "transparent" }
 const FOOTER_CONTENT: ViewStyle = {
   paddingVertical: spacing[4],
   paddingHorizontal: spacing[4],
 }
-const LOGO_SHAKE_STYLE: ImageStyle = {
-  width: 300,
-  height: 200,
+const IMAGE: ImageStyle = {
+  width: 320,
 }
-const LOGO_RUN_STYLE: ImageStyle = {
-  height: 300,
-  width: 212,
-  borderRadius: 100,
-  backgroundColor: "#c5b09f",
+const TOP_LOGO_STYLE: ImageStyle = {
+  ...IMAGE,
+  height: 120,
+}
+const NGADONG_MAN_STYLE: ImageStyle = {
+  ...IMAGE,
+  height: 302,
+}
+const NGADONG_TEXT_STYLE: ImageStyle = {
+  ...IMAGE,
+  height: 200,
+  marginTop: -82,
+}
+const PLAY_BUTTON_STYLE: ImageStyle = {
+  display: "flex",
+  alignItems: "center",
+  width: 230,
+  height: 86,
 }
 
 export const WelcomeScreen: FC<StackScreenProps<NavigatorParamList, "welcome">> = observer(
@@ -101,28 +77,27 @@ export const WelcomeScreen: FC<StackScreenProps<NavigatorParamList, "welcome">> 
 
     return (
       <View testID="WelcomeScreen" style={FULL}>
-        <GradientBackground colors={["#422443", "#281b34"]} />
+        <GradientBackground colors={["#546645", "#351c09"]} />
         <Screen style={CONTAINER} preset="scroll" backgroundColor={color.transparent}>
-          <Header headerTx="welcomeScreen.poweredBy" style={HEADER} titleStyle={HEADER_TITLE} />
-          <Text style={TITLE_WRAPPER}>
-            <Text style={TITLE} text="NGADONGUS" />
-          </Text>
-          <Text style={SUBTITLE} preset="header" text="~non sapiens~" />
-
-          <View testID="LogoContainer" style={LOGO_CONTAINER}>
-            <Image resizeMode="contain" style={LOGO_SHAKE_STYLE} source={LOGO_CARDGADONG} />
-            <Image resizeMode="contain" style={LOGO_RUN_STYLE} source={LOGO_RUNGADONG} />
+          <View style={LOGO_CONTAINER}>
+            <Image resizeMode="contain" style={TOP_LOGO_STYLE} source={LOGO_TOP} />
+          </View>
+          <View style={LOGO_CONTAINER}>
+            <Image resizeMode="contain" style={NGADONG_MAN_STYLE} source={LOGO_MAN} />
+            <Image resizeMode="contain" style={NGADONG_TEXT_STYLE} source={LOGO_TEXT} />
           </View>
         </Screen>
         <SafeAreaView style={FOOTER}>
           <View style={FOOTER_CONTENT}>
-            <Button
-              testID="next-screen-button"
-              style={PLAY}
-              textStyle={PLAY_TEXT}
-              tx="welcomeScreen.play"
-              onPress={nextScreen}
-            />
+            <Button testID="next-screen-button" style={PLAY} onPress={nextScreen}>
+              <ImageBackground
+                resizeMode="contain"
+                style={PLAY_BUTTON_STYLE}
+                source={BUTTON_BACKGROUND}
+              >
+                <Text tx="welcomeScreen.play" style={PLAY_TEXT} />
+              </ImageBackground>
+            </Button>
           </View>
         </SafeAreaView>
       </View>

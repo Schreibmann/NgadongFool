@@ -45,7 +45,6 @@ export class GameController {
 
   constructor(players: Player[], setState: React.Dispatch<React.SetStateAction<PlaygroundState>>) {
     this.players = players
-    this.deck = this.shuffle(CardDeck36)
     this.current = []
     this.beaten = []
     this.setState = setState
@@ -53,7 +52,7 @@ export class GameController {
 
   async init() {
     this.stage = Stage.stumps
-    this.trump = CardSuits.Hearts
+    this.deck = this.shuffle(CardDeck36)
     await this.takeStumps()
     await this.takeCard()
     const randomPlayer = this.players[Math.floor(Math.random() * this.players.length)]
@@ -127,7 +126,9 @@ export class GameController {
         } else {
           console.log(`${self.name} quit game`)
           await this.setNextPlayer()
-          this.players = this.players.filter((player) => !!player.cards.length && !!player.stumps.length)
+          this.players = this.players.filter(
+            (player) => !!player.cards.length && !!player.stumps.length,
+          )
         }
       }
     } else {
@@ -161,7 +162,7 @@ export class GameController {
 
   async showStumps() {
     const self = this.players.find((player) => player.id === this.activePlayer.id)
-    self.cards = self.stumps.map(stump => ({...stump, isStump: false}))
+    self.cards = self.stumps.map((stump) => ({ ...stump, isStump: false }))
     self.stumps = []
     console.log(`${self.name} opened stumps`, self.cards)
     this.updateState()
@@ -295,7 +296,7 @@ export class GameController {
 
     if (this.deck.length === 0) {
       console.log("WTF")
-      return
+      return await this.setNextPlayer()
     }
     // Deck is empty. Time to start game
     if (!playerCard && this.deck.length === 1) {
@@ -303,8 +304,7 @@ export class GameController {
       receiverId = self.id
       await this.takeCard(receiverId)
       this.stage = Stage.mainGame
-      await this.setNextPlayer()
-      return
+      return await this.setNextPlayer()
     }
 
     const opponents = this.players.filter((player) => player.id !== playerId)
@@ -339,13 +339,13 @@ export class GameController {
         await this.takeCard(receiverId)
       }
       card = self.cards[0]
-      await this.prepareTurnCPU(self.id, card)
+      return await this.prepareTurnCPU(self.id, card)
     } else {
       await this.takeCard(self.id)
       if (canPassToHimself) {
-        await this.prepareTurnCPU(self.id)
+        return await this.prepareTurnCPU(self.id)
       } else {
-        await this.setNextPlayer()
+        return await this.setNextPlayer()
       }
     }
   }
