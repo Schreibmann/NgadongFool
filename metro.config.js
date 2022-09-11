@@ -1,7 +1,17 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
-const { getDefaultConfig } = require("expo/metro-config")
+/**
+ * Metro configuration for React Native
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ */
 
-module.exports = getDefaultConfig(__dirname)
-
-// For one idea on how to support symlinks in Expo, see:
-// https://github.com/infinitered/ignite/issues/1904#issuecomment-1054535068
+module.exports = {
+  transformer: {
+    getTransformOptions: async () => ({
+      transform: {
+        experimentalImportSupport: false,
+        inlineRequires: true,
+      },
+    }),
+  },
+};
