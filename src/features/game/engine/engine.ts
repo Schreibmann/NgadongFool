@@ -592,6 +592,42 @@ export class GameEngine {
     };
   }
 
+  /**
+   * Test seam: jump into main with explicit table/hands/trump.
+   * Production UI never calls this.
+   */
+  loadMainFixture(fixture: {
+    players: EnginePlayer[];
+    trump: GameState["trump"];
+    activePlayerId: number;
+    current?: EngineCard[];
+    discardPendingFlip?: boolean;
+    lastPlayedById?: number | null;
+    roundJustEnded?: boolean;
+  }): void {
+    const current = (fixture.current ?? []).map(cloneCard);
+    this.state = {
+      ...this.state,
+      phase: Phase.Main,
+      prepareHeld: null,
+      deck: [],
+      huyovyeQueue: [],
+      players: fixture.players.map((p) => ({
+        ...p,
+        hand: p.hand.map(cloneCard),
+        stumps: p.stumps.map(cloneCard),
+      })),
+      trump: fixture.trump,
+      activePlayerId: fixture.activePlayerId,
+      current,
+      discardPendingFlip: fixture.discardPendingFlip ?? false,
+      lastPlayedById:
+        fixture.lastPlayedById === undefined ? null : fixture.lastPlayedById,
+      roundJustEnded: fixture.roundJustEnded ?? false,
+      message: "main fixture",
+    };
+  }
+
   private beginMainAfterHuyovye(): void {
     const players = this.state.players.map((p) => ({ ...p, huyovye: 0 }));
     const leadFrom =
@@ -994,34 +1030,56 @@ export class GameEngine {
 
   private cpuMain(playerId: number): void {
     if (this.state.discardPendingFlip) {
-      if (this.state.lastPlayedById === playerId) {
+      const flipperId = this.state.lastPlayedById;
+      if (flipperId == null) {
+        this.advanceMainTurn(playerId);
+        return;
+      }
+      if (flipperId === playerId) {
         this.flipDiscard(playerId);
+        return;
+      }
+      const flipper = findPlayer(this.state, flipperId);
+      if (flipper.isCPU && flipper.active) {
+        this.flipDiscard(flipperId);
+        return;
+      }
+      // Human must flip — park active seat on them so UI scheduling unblocks.
+      if (this.state.activePlayerId !== flipperId) {
+        this.state = {
+          ...this.state,
+          activePlayerId: flipperId,
+          message: "Отбой — переверни",
+        };
+        this.emit();
       }
       return;
     }
 
     const player = findPlayer(this.state, playerId);
 
-    if (
-      this.state.roundJustEnded &&
-      player.hand.length === 0 &&
-      player.stumps.length > 0
-    ) {
-      this.claimStumps(playerId);
-      return;
-    }
-    if (
-      this.state.roundJustEnded &&
-      player.hand.length === 0 &&
-      player.stumps.length === 0
-    ) {
-      this.exitGame(playerId);
+    // Empty-hand protocol: claim stumps / exit whenever the pile is clear
+    // (not only when roundJustEnded). Mid-trick empty hand → skip seat.
+    if (player.hand.length === 0) {
+      if (this.state.current.length === 0) {
+        if (player.stumps.length > 0) {
+          this.claimStumps(playerId);
+          return;
+        }
+        this.exitGame(playerId);
+        return;
+      }
+      this.advanceMainTurn(playerId);
       return;
     }
 
     if (this.state.current.length === 0) {
       const lead = this.pickLead(player);
-      if (lead) this.playMain(playerId, lead);
+      if (lead) {
+        this.playMain(playerId, lead);
+        return;
+      }
+      this.advanceMainTurn(playerId);
       return;
     }
 
@@ -1034,6 +1092,16 @@ export class GameEngine {
       return;
     }
     this.takeBottom(playerId);
+  }
+
+  /** Pass main turn to next active seat (CPU must never soft-lock). */
+  private advanceMainTurn(fromPlayerId: number): void {
+    this.state = {
+      ...this.state,
+      activePlayerId: nextClockwiseId(this.state.players, fromPlayerId),
+      message: `${findPlayer(this.state, fromPlayerId).name} пропускает`,
+    };
+    this.emit();
   }
 
   private pickLead(player: EnginePlayer): EngineCard | null {
