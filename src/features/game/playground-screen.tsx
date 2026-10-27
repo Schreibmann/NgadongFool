@@ -441,12 +441,31 @@ export const PlaygroundScreen: FC = () => {
                 ) : null}
                 {state.phase === Phase.Huyovye ? (
                   <View style={FLEX_CENTER}>
+                    {state.resumeMainAfterHuyovye && state.current.length > 0 ? (
+                      <View style={MAIN_GAME_TURN_CONTAINER}>
+                        {state.current.map((card, i) => (
+                          <View
+                            key={cardKey(toUiCard(card), i)}
+                            style={[
+                              i === 0 ? FAN_CARD_FIRST : FAN_CARD,
+                              { zIndex: i },
+                            ]}
+                          >
+                            <Card {...toUiCard(card)} opened />
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
                     <Text
                       style={TEXT}
                       text={
                         humanHuyovyeDue.length
-                          ? "Выбери карту внизу и ткни в должника"
-                          : "Ждём раздачу хуёвых…"
+                          ? state.resumeMainAfterHuyovye
+                            ? "Фол в основной — отдай хуёвую: карта → должник"
+                            : "Выбери карту внизу и ткни в должника"
+                          : state.resumeMainAfterHuyovye
+                            ? "Пауза основной: ждём хуёвые…"
+                            : "Ждём раздачу хуёвых…"
                       }
                     />
                     <Text

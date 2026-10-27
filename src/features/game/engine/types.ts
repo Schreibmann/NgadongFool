@@ -88,6 +88,11 @@ export interface GameState {
   roundJustEnded: boolean;
   /** Pending manual huyovye gifts (giver → receiver). */
   huyovyeQueue: HuyovyeObligation[];
+  /**
+   * True when Main paused into Huyovye to drain foul card-gifts;
+   * after the queue empties, resume Main (do not run beginMainAfterHuyovye).
+   */
+  resumeMainAfterHuyovye: boolean;
   /** True while UI should confirm watchman handoff. */
   pendingWatchmanHandoff: boolean;
   /** Watchman asks remaining for this deal. */
