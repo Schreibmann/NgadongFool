@@ -12,21 +12,27 @@ const seats4: SeatConfig[] = [
 function basePlayers(
   overrides: Partial<Record<number, Partial<EnginePlayer>>> = {},
 ): EnginePlayer[] {
-  return seats4.map((s) => ({
-    id: s.id,
-    name: s.name,
-    isCPU: s.isCPU,
-    hand: [
-      { rank: CardRanks.six, suit: CardSuits.Clubs },
-      { rank: CardRanks.seven, suit: CardSuits.Clubs },
-      { rank: CardRanks.eight, suit: CardSuits.Clubs },
-    ],
-    stumps: [],
-    huyovye: 0,
-    active: true,
-    stumpsRevealed: false,
-    ...overrides[s.id],
-  }));
+  return seats4.map((s): EnginePlayer => {
+    const base: EnginePlayer = {
+      id: s.id,
+      name: s.name,
+      isCPU: s.isCPU,
+      hand: [
+        { rank: CardRanks.six, suit: CardSuits.Clubs },
+        { rank: CardRanks.seven, suit: CardSuits.Clubs },
+        { rank: CardRanks.eight, suit: CardSuits.Clubs },
+      ],
+      stumps: [],
+      huyovye: 0,
+      active: true,
+      stumpsRevealed: false,
+    };
+    const patch = overrides[s.id];
+    if (!patch) {
+      return base;
+    }
+    return { ...base, ...patch };
+  });
 }
 
 describe("CPU huyovye completion", () => {
