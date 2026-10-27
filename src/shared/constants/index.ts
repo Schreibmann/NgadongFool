@@ -2,6 +2,10 @@ import { Card, CardRanks, CardSuits } from "@features/game/components/card/card.
 
 export const CardWidth = 96;
 export const cardHeight = 150;
+/** Each card to the right covers this fraction of the card on its left. */
+export const CardFanOverlap = 0.5;
+/** FlatList / fan stride so neighbors overlap by CardFanOverlap. */
+export const CardFanStride = CardWidth * (1 - CardFanOverlap);
 
 const ranks: CardRanks[] = [
   CardRanks.six,

@@ -26,12 +26,13 @@ function player(
   };
 }
 
-describe("six on ace in prepare", () => {
-  it("places six on opponent ace, awards AceGotLowest, stays in Prepare", () => {
+describe("six on ace / keepPrepare", () => {
+  it("places six on opponent ace, awards ReceivedLowestOnHighest, stays in Prepare", () => {
     const eng = new GameEngine({ seats: seats3, seed: 1 });
     const six = { rank: CardRanks.six, suit: CardSuits.Clubs };
     const ace = { rank: CardRanks.ace, suit: CardSuits.Hearts };
-    eng.loadPrepareFixture({
+    eng.loadTestFixture({
+      phase: Phase.Prepare,
       activePlayerId: 3,
       prepareHeld: six,
       deck: [
@@ -59,14 +60,15 @@ describe("six on ace in prepare", () => {
     expect(s.players.find((p) => p.id === 1)?.huyovye).toBe(1);
     expect(s.lastFoul).toEqual({
       playerId: 1,
-      foul: Foul.AceGotLowest,
+      foul: Foul.ReceivedLowestOnHighest,
     });
   });
 
   it("rejects keepPrepare when a legal dump target exists", () => {
     const eng = new GameEngine({ seats: seats3, seed: 2 });
     const six = { rank: CardRanks.six, suit: CardSuits.Diamonds };
-    eng.loadPrepareFixture({
+    eng.loadTestFixture({
+      phase: Phase.Prepare,
       activePlayerId: 3,
       prepareHeld: six,
       deck: [{ rank: CardRanks.seven, suit: CardSuits.Clubs }],
@@ -91,13 +93,15 @@ describe("six on ace in prepare", () => {
   });
 });
 
-describe("huyovye timing", () => {
+describe("huyovye timing with resumeMainAfterHuyovye", () => {
   it("prepare fouls batch into Huyovye after deck empties then enter Main", () => {
     const eng = new GameEngine({ seats: seats3, seed: 3 });
-    eng.loadPrepareFixture({
+    eng.loadTestFixture({
+      phase: Phase.Prepare,
       activePlayerId: 3,
       prepareHeld: null,
       deck: [],
+      resumeMainAfterHuyovye: false,
       players: [
         player(1, [{ rank: CardRanks.king, suit: CardSuits.Hearts }], {
           isCPU: true,
@@ -122,14 +126,12 @@ describe("huyovye timing", () => {
       ],
     });
 
-    // Draw with empty deck → enterHuyovye batch
     eng.drawPrepare(3);
     const mid = eng.getSnapshot();
     expect([Phase.Huyovye, Phase.Main]).toContain(mid.phase);
     if (mid.phase === Phase.Huyovye) {
-      expect(mid.phaseResume).toBeNull();
+      expect(mid.resumeMainAfterHuyovye).toBe(false);
       eng.runCpuHuyovye();
-      // human may still owe gifts
       const humanDue = eng
         .getSnapshot()
         .huyovyeQueue.filter((q) => q.giverId === 3);
@@ -143,7 +145,7 @@ describe("huyovye timing", () => {
       }
     }
     expect(eng.getSnapshot().phase).toBe(Phase.Main);
-    expect(eng.getSnapshot().phaseResume).toBeNull();
+    expect(eng.getSnapshot().resumeMainAfterHuyovye).toBe(false);
   });
 
   it("Main foul interrupts into Huyovye then resumes same pile", () => {
@@ -184,14 +186,11 @@ describe("huyovye timing", () => {
       ],
     });
 
-    // Illegal beat: six of clubs does not beat ten of clubs when hearts are trump
-    // (same suit would need higher; six < ten)
     eng.playMain(3, { rank: CardRanks.six, suit: CardSuits.Clubs });
 
-    // CPU gifts auto-resolve; may briefly be Huyovye or already resumed
     let s = eng.getSnapshot();
     if (s.phase === Phase.Huyovye) {
-      expect(s.phaseResume).toBe(Phase.Main);
+      expect(s.resumeMainAfterHuyovye).toBe(true);
       expect(s.lastFoul?.foul).toBe(Foul.IllegalBeat);
       eng.runCpuHuyovye();
       const humanDue = eng
@@ -213,7 +212,7 @@ describe("huyovye timing", () => {
 
     expect(s.phase).toBe(Phase.Main);
     expect(s.current).toEqual(pile);
-    expect(s.phaseResume).toBeNull();
+    expect(s.resumeMainAfterHuyovye).toBe(false);
     expect(s.lastFoul?.foul).toBe(Foul.IllegalBeat);
   });
 });

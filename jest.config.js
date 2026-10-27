@@ -26,6 +26,7 @@ module.exports = {
           moduleResolution: "node",
           jsx: "react",
           skipLibCheck: true,
+          types: ["jest"],
         },
       },
     ],

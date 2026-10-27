@@ -18,9 +18,10 @@ export enum Foul {
   DrewTwoAndSawSecond = "drew_two_and_saw_second",
   FailedToDumpLegal = "failed_to_dump_legal",
   DumpedNotFirstClockwise = "dumped_not_first_clockwise",
-  AceGotLowest = "ace_got_lowest",
   GaveAwayLastPrepare = "gave_away_last_prepare",
   PlacedLastDeckCard = "placed_last_deck_card",
+  /** Six placed on another player's ace in prepare — foul to the ace owner. */
+  ReceivedLowestOnHighest = "received_lowest_on_highest",
   NamedTrumpAloud = "named_trump_aloud",
   FlippedOthersDiscard = "flipped_others_discard",
   PlayedOutOfTurn = "played_out_of_turn",
@@ -88,11 +89,10 @@ export interface GameState {
   /** Pending manual huyovye gifts (giver → receiver). */
   huyovyeQueue: HuyovyeObligation[];
   /**
-   * When set to Main, Huyovye was an interrupt from the main game;
-   * queue empty resumes Main instead of starting a fresh main deal.
-   * Null after the prepare-batch Huyovye (then begin Main normally).
+   * True when Main paused into Huyovye to drain foul card-gifts;
+   * after the queue empties, resume Main (do not run beginMainAfterHuyovye).
    */
-  phaseResume: Phase.Main | null;
+  resumeMainAfterHuyovye: boolean;
   /** True while UI should confirm watchman handoff. */
   pendingWatchmanHandoff: boolean;
   /** Watchman asks remaining for this deal. */

@@ -208,10 +208,10 @@ describe("fouls enum", () => {
     expect(Foul.GaveAwayLastPrepare).toBe("gave_away_last_prepare");
     expect(Foul.PlacedLastDeckCard).toBe("placed_last_deck_card");
     expect(Foul.NamedTrumpAloud).toBe("named_trump_aloud");
-    expect(Foul.AceGotLowest).toBe("ace_got_lowest");
+    expect(Foul.ReceivedLowestOnHighest).toBe("received_lowest_on_highest");
   });
 
-  it("naming trump aloud awards foul", () => {
+  it("naming trump aloud awards foul for active players", () => {
     const eng = new GameEngine({ seats: seats3, seed: 40 });
     eng.nameTrumpAloud(3);
     expect(eng.getSnapshot().lastFoul?.foul).toBe(Foul.NamedTrumpAloud);

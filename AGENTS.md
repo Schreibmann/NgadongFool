@@ -84,8 +84,8 @@ interface GameState {
   tookLastDeckCardId: number | null;
   roundJustEnded: boolean;
   huyovyeQueue: HuyovyeObligation[];
-  /** Main interrupt resume; null after prepare-batch Huyovye. */
-  phaseResume: Phase.Main | null;
+  /** True when Main paused into Huyovye for foul gifts; resume Main after drain. */
+  resumeMainAfterHuyovye: boolean;
   pendingWatchmanHandoff: boolean;
   watchmanAskCounts: Record<number, number>;
   lastFoul: { playerId: number; foul: Foul } | null;
@@ -104,16 +104,16 @@ always the most recently received card.
 
 ```
 Deal ──► Prepare ──(deck empty)──► Huyovye ──(queue empty)──► Main
-Main ──(foul)──► Huyovye ──(queue empty, phaseResume=Main)──► Main
+Main ──(foul)──► Huyovye ──(queue empty, resumeMainAfterHuyovye)──► Main
 Main ──(≤2 active, then 1)──► Ended
 ```
 
 - `Prepare → Huyovye`: deck becomes empty (including last-card handling, §5).
-  Batch distributes all accumulated `huyovye`. `phaseResume = null`.
+  Batch distributes all accumulated `huyovye`. `resumeMainAfterHuyovye = false`.
 - `Huyovye → Main` (after Prepare): queue empty → fresh Main (`beginMainAfterHuyovye`).
 - `Main → Huyovye`: each Main foul immediately opens Huyovye for that foul's
-  gifts; `phaseResume = Main`; pile / `activePlayerId` preserved.
-- `Huyovye → Main` (interrupt): queue empty → `resumeMainAfterHuyovye`.
+  gifts; `resumeMainAfterHuyovye = true`; pile / `activePlayerId` preserved.
+- `Huyovye → Main` (interrupt): queue empty → `resumeMainAfterFoulHuyovye`.
 
 ---
 
@@ -190,9 +190,9 @@ The last card of a hand is never given away (foul P8 if attempted).
 `CardRanks.six` placed on an ace is a **mandatory** placement:
 
 - `canPlaceOnTop` accepts six → ace.
-- Ace owner receives foul P7 (`Foul.AceGotLowest`) — increments their `huyovye`
-  (batch-settled after Prepare).
-- Applies to another player's or own top ace.
+- Ace owner receives foul P7 (`Foul.ReceivedLowestOnHighest`) when six is placed
+  on **another** player's ace — increments their `huyovye` (batch after Prepare).
+- Placing six on **own** ace does not award P7 (engine rule).
 - After placement the acting player draws again.
 - Last hand card is never given (P8); placing onto another player's last card is OK.
 
@@ -223,16 +223,16 @@ When the deck is exhausted:
    humans and CPUs.
 5. Sneaky trick (R6, `sneakyLead`, default OFF): with OFF, Main lead is clockwise
    after `tookLastDeckCardId`.
-6. Queue empty → reset all `huyovye` to 0 → fresh Main (`phaseResume` was null).
+6. Queue empty → reset all `huyovye` to 0 → fresh Main (`resumeMainAfterHuyovye` was false).
 
 ### 6.2 During Main (immediate interrupt)
 
-1. Each foul in Main increments the offender's `huyovye` and **immediately**
-   enters Huyovye with gifts for that foul only (`phaseResume = Phase.Main`).
+1. Each foul in Main increments the offender's `huyovye` and enqueues gifts, then
+   pauses into Huyovye (`resumeMainAfterHuyovye = true` via `pauseMainForHuyovye`).
 2. Preserve `current`, `activePlayerId`, `discardPendingFlip`, etc.
 3. CPU auto / human manual as above.
-4. Queue empty → `resumeMainAfterHuyovye` (counters cleared, table unchanged).
-5. Fouls already inside Huyovye append gifts to the queue tail (no nested re-enter).
+4. Queue empty → `resumeMainAfterFoulHuyovye` (counters cleared, table unchanged).
+5. Fouls already inside mid-main Huyovye append gifts to the queue tail.
 
 ---
 
@@ -315,7 +315,7 @@ Phrases are exact strings; paraphrases do not count.
 | P4 | FailedToDumpLegal              | Did not place on a mandatory adjacency target / kept while legal existed   |
 | P5 | DrewTwoAndSawSecond            | Drew 2 cards from the deck and saw the second                              |
 | P6 | DumpedNotFirstClockwise        | Placed on a candidate other than the first clockwise one                   |
-| P7 | AceGotLowest                   | Your top ace received a six (six-on-ace)                                   |
+| P7 | ReceivedLowestOnHighest        | Your top ace received a six from another player (six-on-ace)               |
 | P8 | GaveAwayLastPrepare            | Gave away / placed the last card of your hand                              |
 | P9 | PlacedLastDeckCard             | Placed/gave the last deck card to anyone                                   |
 | P10| NamedTrumpAloud                | Said the trump suit aloud while still an active player                     |
@@ -371,9 +371,10 @@ the deck is empty (§6.1).
 
 ## 13. Open questions (must be closed before release)
 
-1. ~~Six on ace: obligation or option?~~ **CLOSED: obligation + P7 to ace owner.**
+1. ~~Six on ace: obligation or option?~~ **CLOSED: obligation + P7
+   (`ReceivedLowestOnHighest`) to other-player ace owner.**
 2. ~~Do MAIN-phase fouls convert into gifts?~~ **CLOSED: immediate Huyovye
-   interrupt, then resume Main (`phaseResume`).**
+   interrupt, then resume Main (`resumeMainAfterHuyovye`).**
 3. Unify foul → turn-move semantics between Prepare and Main.
 4. `takeBottom` implements `bottom_only`; default intent is `whole_pile` — sync.
 5. Enforce P17 with a real deadline (timeout) mechanism.
