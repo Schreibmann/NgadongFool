@@ -3,6 +3,7 @@ import { GameEngine } from "../engine";
 import { Foul, Phase, SeatConfig } from "../types";
 import { canBeat } from "../rules";
 import { activePlayers } from "../seats";
+import { drainPrepare, resolvePrepareHeld } from "./prepare-helpers";
 
 const seats3: SeatConfig[] = [
   { id: 1, name: "A", isCPU: true },
@@ -52,32 +53,11 @@ describe("deal", () => {
 describe("prepare", () => {
   it("last deck card sets trump / бесскозырка and enters huyovye→main", () => {
     const eng = new GameEngine({ seats: seats3, seed: 10 });
-    // Force almost-empty deck by playing until one card — use internal path via many keeps
-    // Directly mutate via taking until one left: draw+keep loop
-    let guard = 80;
-    while (guard-- > 0) {
-      const s = eng.getSnapshot();
-      if (s.phase !== Phase.Prepare) break;
-      const id = s.activePlayerId;
-      if (!s.prepareHeld) {
-        eng.drawPrepare(id);
-      }
-      const after = eng.getSnapshot();
-      if (after.phase !== Phase.Prepare) break;
-      if (after.prepareHeld) {
-        eng.keepPrepare(id);
-      }
-    }
+    drainPrepare(eng);
     const s = eng.getSnapshot();
     expect([Phase.Main, Phase.Huyovye, Phase.Ended]).toContain(s.phase);
-    if (s.tookLastDeckCardId != null && s.phase === Phase.Huyovye) {
-      eng.runCpuHuyovye();
-      if (eng.getSnapshot().huyovyeQueue.length === 0) {
-        eng.finishHuyovye();
-      }
-    }
     if (s.tookLastDeckCardId != null) {
-      expect([Phase.Main, Phase.Huyovye]).toContain(eng.getSnapshot().phase);
+      expect([Phase.Main, Phase.Huyovye]).toContain(s.phase);
     }
   });
 
@@ -100,21 +80,17 @@ describe("prepare", () => {
 
   it("CPU never randomly skips a legal prepare place", () => {
     const eng = new GameEngine({ seats: seats3, seed: 7 });
-    // Run many CPU prepare steps; ensure no unexplained huyovye from calcProbability
     for (let i = 0; i < 30; i++) {
       const s = eng.getSnapshot();
       if (s.phase !== Phase.Prepare) break;
       const p = s.players.find((x) => x.id === s.activePlayerId);
       if (!p?.isCPU) {
-        // human: keep to advance
-        if (!s.prepareHeld) eng.drawPrepare(p!.id);
-        if (eng.getSnapshot().prepareHeld) eng.keepPrepare(p!.id);
+        resolvePrepareHeld(eng, p!.id);
         continue;
       }
       const before = p.huyovye;
       eng.runCpuTurn();
       const after = eng.getSnapshot().players.find((x) => x.id === p.id);
-      // CPU should not self-foul via random skip (FailedToDumpLegal only if keep with legal)
       expect(after!.huyovye).toBeLessThanOrEqual(before + 1);
     }
   });
@@ -123,18 +99,7 @@ describe("prepare", () => {
 describe("main protocol", () => {
   function advanceToMain(seed: number): GameEngine {
     const eng = new GameEngine({ seats: seats3, seed });
-    let guard = 100;
-    while (guard-- > 0 && eng.getSnapshot().phase === Phase.Prepare) {
-      const s = eng.getSnapshot();
-      const id = s.activePlayerId;
-      const p = s.players.find((x) => x.id === id)!;
-      if (p.isCPU) {
-        eng.runCpuTurn();
-      } else {
-        if (!s.prepareHeld) eng.drawPrepare(id);
-        if (eng.getSnapshot().prepareHeld) eng.keepPrepare(id);
-      }
-    }
+    drainPrepare(eng);
     return eng;
   }
 
@@ -203,6 +168,7 @@ describe("main protocol", () => {
     if (!pl.hand[0]) return;
     eng.playMain(id, pl.hand[0]);
     const mid = eng.getSnapshot();
+    if (mid.phase !== Phase.Main) return;
     const next = mid.activePlayerId;
     const np = mid.players.find((p) => p.id === next)!;
     const target = mid.current[mid.current.length - 1];
@@ -212,28 +178,15 @@ describe("main protocol", () => {
     const after = eng.getSnapshot();
     expect(after.lastFoul?.foul).toBe(Foul.IllegalBeat);
     expect(after.lastFoul?.playerId).toBe(next);
+    expect([Phase.Main, Phase.Huyovye]).toContain(after.phase);
   });
 });
 
 describe("stumps / exit", () => {
   it("exit requires empty hand and stumps (OR, not AND bug)", () => {
     const eng = new GameEngine({ seats: seats3, seed: 30 });
-    // Force main and empty one player
-    let guard = 100;
-    while (guard-- > 0 && eng.getSnapshot().phase === Phase.Prepare) {
-      const s = eng.getSnapshot();
-      const id = s.activePlayerId;
-      if (!s.prepareHeld) eng.drawPrepare(id);
-      if (eng.getSnapshot().prepareHeld) eng.keepPrepare(id);
-    }
-    let s = eng.getSnapshot();
-    if (s.phase === Phase.Huyovye) {
-      eng.runCpuHuyovye();
-      if (eng.getSnapshot().huyovyeQueue.length === 0) {
-        eng.finishHuyovye();
-      }
-      s = eng.getSnapshot();
-    }
+    drainPrepare(eng);
+    const s = eng.getSnapshot();
     expect([Phase.Main, Phase.Huyovye]).toContain(s.phase);
     const candidate = s.players[0];
     expect(typeof eng.exitGame).toBe("function");
@@ -255,6 +208,7 @@ describe("fouls enum", () => {
     expect(Foul.GaveAwayLastPrepare).toBe("gave_away_last_prepare");
     expect(Foul.PlacedLastDeckCard).toBe("placed_last_deck_card");
     expect(Foul.NamedTrumpAloud).toBe("named_trump_aloud");
+    expect(Foul.AceGotLowest).toBe("ace_got_lowest");
   });
 
   it("naming trump aloud awards foul", () => {

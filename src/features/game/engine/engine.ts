@@ -3,6 +3,7 @@ import {
   EnginePlayer,
   Foul,
   GameState,
+  HuyovyeObligation,
   Listener,
   Phase,
   SeatConfig,
@@ -26,6 +27,7 @@ import {
   topOf,
   trumpFromLastDeckCard,
 } from "./rules";
+import { CardRanks } from "../components/card/card.props";
 
 export interface StartOptions {
   seats: SeatConfig[];
@@ -133,6 +135,7 @@ export class GameEngine {
       prepareHeld: null,
       roundJustEnded: false,
       huyovyeQueue: [],
+      phaseResume: null,
       pendingWatchmanHandoff: false,
       watchmanAskCounts: {},
       lastFoul: null,
@@ -190,6 +193,11 @@ export class GameEngine {
     this.emit();
   }
 
+  /**
+   * Record a foul on `playerId` (receiver of хуёвые).
+   * Prepare: accumulate only. Main: interrupt into Huyovye. Huyovye: append gifts.
+   * Callers that also mutate turn/state must do that BEFORE calling this while still in Main.
+   */
   private awardFoul(playerId: number, foul: Foul): void {
     const players = this.state.players.map((p) =>
       p.id === playerId ? { ...p, huyovye: p.huyovye + 1 } : p,
@@ -200,6 +208,25 @@ export class GameEngine {
       lastFoul: { playerId, foul },
       message: `Хуёвая: ${foul}`,
     };
+
+    if (this.state.phase === Phase.Main) {
+      this.enterHuyovyeFromMainFoul(playerId);
+      return;
+    }
+    if (this.state.phase === Phase.Huyovye) {
+      const gifts = this.giftsForFoul(playerId);
+      this.state = {
+        ...this.state,
+        huyovyeQueue: [...this.state.huyovyeQueue, ...gifts],
+      };
+    }
+  }
+
+  /** One gift from each other active seat to the foul receiver. */
+  private giftsForFoul(receiverId: number): HuyovyeObligation[] {
+    return activePlayers(this.state.players)
+      .filter((g) => g.id !== receiverId)
+      .map((g) => ({ giverId: g.id, receiverId }));
   }
 
   // ——— Prepare ———
@@ -367,6 +394,8 @@ export class GameEngine {
     );
     if (first) {
       this.awardFoul(playerId, Foul.FailedToDumpLegal);
+      this.emit();
+      return false;
     }
     const players = this.state.players.map((p) =>
       p.id === playerId
@@ -399,6 +428,8 @@ export class GameEngine {
     const to = players.find((p) => p.id === toId);
     if (!from || !to) return;
 
+    const previousTop = to.hand[0];
+
     if (fromHand) {
       const idx = from.hand.findIndex((c) => cardsEqual(c, card));
       if (idx < 0) return;
@@ -406,34 +437,64 @@ export class GameEngine {
     }
     to.hand.unshift(cloneCard(card));
     this.state = { ...this.state, players };
+
+    if (
+      card.rank === CardRanks.six &&
+      previousTop !== undefined &&
+      previousTop.rank === CardRanks.ace
+    ) {
+      this.awardFoul(toId, Foul.AceGotLowest);
+    }
   }
 
   // ——— Huyovye ———
 
+  /** Batch Huyovye after Prepare (deck empty). Always continues into a fresh Main. */
   private enterHuyovye(): void {
     const queue = this.buildHuyovyeQueue();
     this.state = {
       ...this.state,
       phase: Phase.Huyovye,
+      phaseResume: null,
       prepareHeld: null,
       huyovyeQueue: queue,
       message:
         queue.length === 0
           ? "Хуёвых нет — к основной"
-          : `Фаза хуёвых: раздайте плохие карты (${queue.length})`,
+          : `Фаза хуёвых (после набора): раздайте плохие карты (${queue.length})`,
     };
     this.emit();
     if (queue.length === 0) {
-      this.beginMainAfterHuyovye();
+      this.exitHuyovye();
       return;
     }
-    // CPU givers auto-play their obligations; humans choose manually.
     this.runCpuHuyovye();
   }
 
-  private buildHuyovyeQueue(): { giverId: number; receiverId: number }[] {
+  /** Immediate Huyovye interrupt from a Main-phase foul. Preserves the main table. */
+  private enterHuyovyeFromMainFoul(receiverId: number): void {
+    const gifts = this.giftsForFoul(receiverId);
+    this.state = {
+      ...this.state,
+      phase: Phase.Huyovye,
+      phaseResume: Phase.Main,
+      huyovyeQueue: gifts,
+      message:
+        gifts.length === 0
+          ? "Хуёвых нет — продолжаем"
+          : `Фаза хуёвых: раздайте плохие карты (${gifts.length})`,
+    };
+    this.emit();
+    if (gifts.length === 0) {
+      this.exitHuyovye();
+      return;
+    }
+    this.runCpuHuyovye();
+  }
+
+  private buildHuyovyeQueue(): HuyovyeObligation[] {
     const active = activePlayers(this.state.players);
-    const queue: { giverId: number; receiverId: number }[] = [];
+    const queue: HuyovyeObligation[] = [];
     for (const receiver of active) {
       for (let n = 0; n < receiver.huyovye; n++) {
         for (const giver of active) {
@@ -443,6 +504,14 @@ export class GameEngine {
       }
     }
     return queue;
+  }
+
+  private exitHuyovye(): void {
+    if (this.state.phaseResume === Phase.Main) {
+      this.resumeMainAfterHuyovye();
+      return;
+    }
+    this.beginMainAfterHuyovye();
   }
 
   /** Remaining gifts owed to a receiver in the current huyovye queue. */
@@ -497,7 +566,7 @@ export class GameEngine {
     };
     this.emit();
     if (queue.length === 0) {
-      this.beginMainAfterHuyovye();
+      this.exitHuyovye();
       return true;
     }
     // After a human gift, finish any remaining CPU obligations.
@@ -547,18 +616,18 @@ export class GameEngine {
         this.state.phase === Phase.Huyovye &&
         this.state.huyovyeQueue.length === 0
       ) {
-        this.beginMainAfterHuyovye();
+        this.exitHuyovye();
       }
     } finally {
       this.cpuHuyovyeRunning = false;
     }
   }
 
-  /** Start main once the huyovye queue is empty (no-op if gifts remain). */
+  /** Start / resume main once the huyovye queue is empty (no-op if gifts remain). */
   finishHuyovye(): boolean {
     if (this.state.phase !== Phase.Huyovye) return false;
     if (this.state.huyovyeQueue.length > 0) return false;
-    this.beginMainAfterHuyovye();
+    this.exitHuyovye();
     return true;
   }
 
@@ -571,10 +640,13 @@ export class GameEngine {
     trump: GameState["trump"];
     queue: GameState["huyovyeQueue"];
     tookLastDeckCardId?: number | null;
+    phaseResume?: Phase.Main | null;
   }): void {
     this.state = {
       ...this.state,
       phase: Phase.Huyovye,
+      phaseResume:
+        fixture.phaseResume === undefined ? null : fixture.phaseResume,
       prepareHeld: null,
       deck: [],
       players: fixture.players.map((p) => ({
@@ -592,6 +664,67 @@ export class GameEngine {
     };
   }
 
+  /**
+   * Test seam: jump into Main with explicit hands/pile/trump.
+   * Production UI never calls this.
+   */
+  loadMainFixture(fixture: {
+    players: EnginePlayer[];
+    trump: GameState["trump"];
+    current?: EngineCard[];
+    activePlayerId: number;
+  }): void {
+    this.state = {
+      ...this.state,
+      phase: Phase.Main,
+      phaseResume: null,
+      prepareHeld: null,
+      deck: [],
+      huyovyeQueue: [],
+      players: fixture.players.map((p) => ({
+        ...p,
+        hand: p.hand.map(cloneCard),
+        stumps: p.stumps.map(cloneCard),
+      })),
+      trump: fixture.trump,
+      current: (fixture.current ?? []).map(cloneCard),
+      activePlayerId: fixture.activePlayerId,
+      discardPendingFlip: false,
+      roundJustEnded: false,
+      message: "main fixture",
+    };
+  }
+
+  /**
+   * Test seam: jump into Prepare with explicit hands/held/deck.
+   * Production UI never calls this.
+   */
+  loadPrepareFixture(fixture: {
+    players: EnginePlayer[];
+    deck?: EngineCard[];
+    prepareHeld?: EngineCard | null;
+    activePlayerId: number;
+  }): void {
+    this.state = {
+      ...this.state,
+      phase: Phase.Prepare,
+      phaseResume: null,
+      huyovyeQueue: [],
+      players: fixture.players.map((p) => ({
+        ...p,
+        hand: p.hand.map(cloneCard),
+        stumps: p.stumps.map(cloneCard),
+      })),
+      deck: (fixture.deck ?? []).map(cloneCard),
+      prepareHeld:
+        fixture.prepareHeld === undefined || fixture.prepareHeld === null
+          ? null
+          : cloneCard(fixture.prepareHeld),
+      activePlayerId: fixture.activePlayerId,
+      message: "prepare fixture",
+    };
+  }
+
   private beginMainAfterHuyovye(): void {
     const players = this.state.players.map((p) => ({ ...p, huyovye: 0 }));
     const leadFrom =
@@ -601,12 +734,27 @@ export class GameEngine {
       ...this.state,
       players,
       huyovyeQueue: [],
+      phaseResume: null,
       phase: Phase.Main,
       activePlayerId: next,
       current: [],
       discardPendingFlip: false,
       roundJustEnded: false,
       message: "Основная игра",
+    };
+    this.emit();
+  }
+
+  /** Resume Main after an interrupt Huyovye; keep pile and turn seat. */
+  private resumeMainAfterHuyovye(): void {
+    const players = this.state.players.map((p) => ({ ...p, huyovye: 0 }));
+    this.state = {
+      ...this.state,
+      players,
+      huyovyeQueue: [],
+      phaseResume: null,
+      phase: Phase.Main,
+      message: "Продолжаем основную",
     };
     this.emit();
   }
@@ -619,7 +767,6 @@ export class GameEngine {
       return false;
     }
     if (this.state.activePlayerId !== playerId) {
-      this.awardFoul(playerId, Foul.PlayedOutOfTurn);
       this.state = {
         ...this.state,
         activePlayerId: nextClockwiseId(
@@ -627,7 +774,10 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.awardFoul(playerId, Foul.PlayedOutOfTurn);
+      if (this.state.phase !== Phase.Huyovye) {
+        this.emit();
+      }
       return false;
     }
 
@@ -643,7 +793,6 @@ export class GameEngine {
 
     const target = this.state.current[this.state.current.length - 1];
     if (!canBeat(target, card, this.state.trump)) {
-      this.awardFoul(playerId, Foul.IllegalBeat);
       this.state = {
         ...this.state,
         activePlayerId: nextClockwiseId(
@@ -651,12 +800,14 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.awardFoul(playerId, Foul.IllegalBeat);
+      if (this.state.phase !== Phase.Huyovye) {
+        this.emit();
+      }
       return false;
     }
 
     if (this.state.current.length >= activeCount) {
-      this.awardFoul(playerId, Foul.ExtraCardPastN);
       this.state = {
         ...this.state,
         activePlayerId: nextClockwiseId(
@@ -664,7 +815,10 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.awardFoul(playerId, Foul.ExtraCardPastN);
+      if (this.state.phase !== Phase.Huyovye) {
+        this.emit();
+      }
       return false;
     }
 
@@ -735,7 +889,6 @@ export class GameEngine {
       return false;
     }
     if (this.state.lastPlayedById !== playerId) {
-      this.awardFoul(playerId, Foul.FlippedOthersDiscard);
       this.state = {
         ...this.state,
         activePlayerId: nextClockwiseId(
@@ -743,7 +896,10 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.awardFoul(playerId, Foul.FlippedOthersDiscard);
+      if (this.state.phase !== Phase.Huyovye) {
+        this.emit();
+      }
       return false;
     }
 
@@ -901,7 +1057,6 @@ export class GameEngine {
   }
 
   nameTrumpAloud(playerId: number): void {
-    this.awardFoul(playerId, Foul.NamedTrumpAloud);
     if (this.state.phase === Phase.Main) {
       this.state = {
         ...this.state,
@@ -911,7 +1066,10 @@ export class GameEngine {
         ),
       };
     }
-    this.emit();
+    this.awardFoul(playerId, Foul.NamedTrumpAloud);
+    if (this.state.phase !== Phase.Huyovye) {
+      this.emit();
+    }
   }
 
   askWhoIsWatchman(askerId: number): void {

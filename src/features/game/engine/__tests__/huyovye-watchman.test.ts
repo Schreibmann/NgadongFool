@@ -1,5 +1,6 @@
 import { GameEngine } from "../engine";
 import { Foul, Phase, SeatConfig } from "../types";
+import { resolvePrepareHeld } from "./prepare-helpers";
 
 const seats4: SeatConfig[] = [
   { id: 1, name: "A", isCPU: true },
@@ -8,7 +9,8 @@ const seats4: SeatConfig[] = [
   { id: 100, name: "Human", isCPU: false },
 ];
 
-function drainPrepare(eng: GameEngine): void {
+/** Advance through Prepare; leave Huyovye for human gifts (do not finish). */
+function drainPrepareLeaveHuyovye(eng: GameEngine): void {
   let guard = 120;
   while (guard-- > 0 && eng.getSnapshot().phase === Phase.Prepare) {
     const s = eng.getSnapshot();
@@ -18,9 +20,11 @@ function drainPrepare(eng: GameEngine): void {
     if (p.isCPU) {
       eng.runCpuTurn();
     } else {
-      if (!s.prepareHeld) eng.drawPrepare(id);
-      if (eng.getSnapshot().prepareHeld) eng.keepPrepare(id);
+      resolvePrepareHeld(eng, id);
     }
+  }
+  if (eng.getSnapshot().phase === Phase.Huyovye) {
+    eng.runCpuHuyovye();
   }
 }
 
@@ -31,7 +35,7 @@ describe("manual huyovye", () => {
     expect(eng.getSnapshot().players.find((p) => p.id === 100)?.huyovye).toBe(
       1,
     );
-    drainPrepare(eng);
+    drainPrepareLeaveHuyovye(eng);
     const s = eng.getSnapshot();
     expect([Phase.Huyovye, Phase.Main]).toContain(s.phase);
     if (s.phase === Phase.Huyovye) {
@@ -44,7 +48,7 @@ describe("manual huyovye", () => {
   it("giveHuyovyeCard fouls when giving last hand card", () => {
     const eng = new GameEngine({ seats: seats4, seed: 2, watchmanId: 1 });
     eng.nameTrumpAloud(1);
-    drainPrepare(eng);
+    drainPrepareLeaveHuyovye(eng);
     const st = eng.getSnapshot();
     if (st.phase !== Phase.Huyovye) {
       return;

@@ -18,6 +18,7 @@ export enum Foul {
   DrewTwoAndSawSecond = "drew_two_and_saw_second",
   FailedToDumpLegal = "failed_to_dump_legal",
   DumpedNotFirstClockwise = "dumped_not_first_clockwise",
+  AceGotLowest = "ace_got_lowest",
   GaveAwayLastPrepare = "gave_away_last_prepare",
   PlacedLastDeckCard = "placed_last_deck_card",
   NamedTrumpAloud = "named_trump_aloud",
@@ -86,6 +87,12 @@ export interface GameState {
   roundJustEnded: boolean;
   /** Pending manual huyovye gifts (giver → receiver). */
   huyovyeQueue: HuyovyeObligation[];
+  /**
+   * When set to Main, Huyovye was an interrupt from the main game;
+   * queue empty resumes Main instead of starting a fresh main deal.
+   * Null after the prepare-batch Huyovye (then begin Main normally).
+   */
+  phaseResume: Phase.Main | null;
   /** True while UI should confirm watchman handoff. */
   pendingWatchmanHandoff: boolean;
   /** Watchman asks remaining for this deal. */

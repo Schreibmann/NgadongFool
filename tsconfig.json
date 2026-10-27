@@ -11,16 +11,36 @@
     "skipLibCheck": true,
     "baseUrl": "./src",
     "paths": {
-      "@shared-components/*": ["./shared/components/*"],
-      "@shared-constants": ["./shared/constants"],
-      "@theme": ["./shared/theme"],
-      "@theme/*": ["./shared/theme/*"],
-      "@services/*": ["./services/*"],
-      "@features/*": ["./features/*"],
-      "@utils/*": ["./utils/*"],
-      "@assets/*": ["./assets/*"],
-      "theme": ["./shared/theme"],
-      "i18n": ["./i18n"]
+      "@shared-components/*": [
+        "./shared/components/*"
+      ],
+      "@shared-constants": [
+        "./shared/constants"
+      ],
+      "@theme": [
+        "./shared/theme"
+      ],
+      "@theme/*": [
+        "./shared/theme/*"
+      ],
+      "@services/*": [
+        "./services/*"
+      ],
+      "@features/*": [
+        "./features/*"
+      ],
+      "@utils/*": [
+        "./utils/*"
+      ],
+      "@assets/*": [
+        "./assets/*"
+      ],
+      "theme": [
+        "./shared/theme"
+      ],
+      "i18n": [
+        "./i18n"
+      ]
     }
   },
   "include": [
@@ -28,9 +48,11 @@
     "index.js",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/types/**/*.d.ts",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "src/types/**/*.d.ts"
   ],
-  "exclude": ["node_modules", "babel.config.js", "metro.config.js"]
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js"
+  ]
 }

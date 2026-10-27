@@ -20,7 +20,12 @@ import { Button } from "@shared-components/button/button";
 import { Card } from "./components/card/card";
 import { Card as CardType } from "./components/card/card.props";
 import { DragProvider, Draggable, DropZone } from "./components/drag-drop";
-import { Phase, EngineCard, EnginePlayer } from "./engine";
+import {
+  Phase,
+  EngineCard,
+  EnginePlayer,
+  peekFirstPrepareTarget,
+} from "./engine";
 import { useGameEngine } from "./use-game-engine";
 import {
   DEFAULT_PLAYER_COUNT,
@@ -124,6 +129,15 @@ const SELECTED_CARD: ViewStyle = {
   borderWidth: 2,
   borderColor: color.palette.orange,
 };
+const HUYOVYE_BANNER: ViewStyle = {
+  backgroundColor: "rgba(90,20,20,0.85)",
+  padding: 12,
+  marginHorizontal: 8,
+  marginBottom: 8,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: color.palette.orange,
+};
 
 const CARD_ITEM_LENGTH = CardWidth + 6;
 
@@ -177,6 +191,21 @@ export const PlaygroundScreen: FC = () => {
   const humanHuyovyeDue = state.huyovyeQueue.filter(
     (q) => q.giverId === HUMAN_ID,
   );
+
+  const prepareDumpCard: EngineCard | null =
+    state.phase === Phase.Prepare
+      ? state.prepareHeld ??
+        (me && me.hand.length > 1 ? me.hand[0] : null)
+      : null;
+  const legalPrepareTarget =
+    state.phase === Phase.Prepare && prepareDumpCard
+      ? peekFirstPrepareTarget(state, HUMAN_ID, prepareDumpCard)
+      : null;
+  const canKeepPrepare =
+    state.phase === Phase.Prepare &&
+    isMyTurn &&
+    state.prepareHeld != null &&
+    legalPrepareTarget == null;
 
   useEffect(() => {
     if (state.phase === Phase.Huyovye) {
@@ -358,6 +387,12 @@ export const PlaygroundScreen: FC = () => {
                     player={p}
                     phase={state.phase}
                     isMyTurn={isMyTurn}
+                    prepareDropEnabled={
+                      isMyTurn &&
+                      state.phase === Phase.Prepare &&
+                      p.active &&
+                      legalPrepareTarget?.id === p.id
+                    }
                     outstanding={engine.huyovyeOutstanding(p.id)}
                     canReceiveHuyovye={
                       state.phase === Phase.Huyovye &&
@@ -411,25 +446,37 @@ export const PlaygroundScreen: FC = () => {
                     ))}
                   </DropZone>
                 ) : null}
-                {state.phase === Phase.Huyovye ? (
-                  <View style={FLEX_CENTER}>
-                    <Text
-                      style={TEXT}
-                      text={
-                        humanHuyovyeDue.length
-                          ? "Выбери карту внизу и ткни в должника"
-                          : "Ждём раздачу хуёвых…"
-                      }
-                    />
-                    <Text
-                      style={SMALL}
-                      text={`Осталось обязательств: ${state.huyovyeQueue.length}`}
-                    />
-                  </View>
-                ) : null}
               </ImageBackground>
             </View>
           </Screen>
+
+          {state.phase === Phase.Huyovye ? (
+            <View style={HUYOVYE_BANNER} testID="HuyovyeBanner">
+              <Text style={TEXT} text="Хуёвые" />
+              <Text
+                style={SMALL}
+                text={
+                  state.phaseResume === Phase.Main
+                    ? state.lastFoul
+                      ? `Фол: ${state.lastFoul.foul}`
+                      : "Фол в основной игре"
+                    : "После набора"
+                }
+              />
+              <Text
+                style={SMALL}
+                text={`Осталось обязательств: ${state.huyovyeQueue.length}`}
+              />
+              <Text
+                style={TEXT}
+                text={
+                  humanHuyovyeDue.length
+                    ? "Выбери карту внизу и ткни в получателя"
+                    : "Ждём раздачу хуёвых…"
+                }
+              />
+            </View>
+          ) : null}
 
           {state.pendingWatchmanHandoff ? (
             <View style={BANNER} testID="WatchmanHandoffBanner">
@@ -477,9 +524,7 @@ export const PlaygroundScreen: FC = () => {
             </View>
           ) : null}
 
-          {state.phase === Phase.Prepare &&
-          isMyTurn &&
-          state.prepareHeld ? (
+          {canKeepPrepare ? (
             <Button
               testID="keep-card-button"
               style={BUTTON_WRAPPER}
@@ -568,7 +613,11 @@ export const PlaygroundScreen: FC = () => {
           <SafeAreaView style={FOOTER}>
             <View style={FOOTER_CONTENT}>
               <DropZone
-                disabled={!isMyTurn || state.phase !== Phase.Prepare}
+                disabled={
+                  !isMyTurn ||
+                  state.phase !== Phase.Prepare ||
+                  legalPrepareTarget?.id !== me.id
+                }
                 onDrop={(card) => onDropToPlayer(me, card)}
               >
                 <FlatList
@@ -600,7 +649,7 @@ function activePlayersStill(players: EnginePlayer[]): EnginePlayer[] {
 function OpponentSlot({
   player,
   phase,
-  isMyTurn,
+  prepareDropEnabled,
   outstanding,
   canReceiveHuyovye,
   onDrop,
@@ -608,7 +657,7 @@ function OpponentSlot({
 }: {
   player: EnginePlayer;
   phase: Phase;
-  isMyTurn: boolean;
+  prepareDropEnabled: boolean;
   outstanding: number;
   canReceiveHuyovye: boolean;
   onDrop: (card: CardType) => void;
@@ -659,10 +708,7 @@ function OpponentSlot({
 
   return (
     <View style={PLAYER}>
-      <DropZone
-        disabled={!isMyTurn || phase !== Phase.Prepare || !player.active}
-        onDrop={onDrop}
-      >
+      <DropZone disabled={!prepareDropEnabled} onDrop={onDrop}>
         {body}
       </DropZone>
     </View>
