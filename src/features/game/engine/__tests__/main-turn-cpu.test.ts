@@ -125,13 +125,14 @@ describe("CPU main turn advances", () => {
     expect(after.activePlayerId).toBe(2);
   });
 
-  it("CPU with empty hand and clear pile claims stumps (no soft-lock)", () => {
+  it("CPU with empty hand after discard cycle claims stumps (no soft-lock)", () => {
     const eng = new GameEngine({ seats: seats4, seed: 4 });
     eng.loadMainFixture({
       trump: CardSuits.Hearts,
       activePlayerId: 1,
       current: [],
-      roundJustEnded: false,
+      // Claim requires roundJustEnded (discard flip), not merely empty pile.
+      roundJustEnded: true,
       players: seats4.map((s) =>
         s.id === 1
           ? player(s, {
@@ -176,6 +177,8 @@ describe("CPU main turn advances", () => {
     expect(after.current).toHaveLength(0);
     expect(after.beaten.length).toBeGreaterThanOrEqual(4);
     expect(after.roundJustEnded).toBe(true);
+    // Lead of next trick is next clockwise after the flipper.
+    expect(after.activePlayerId).toBe(2);
   });
 
   it("repeated runCpuTurn does not soft-lock across a full CPU cycle", () => {
