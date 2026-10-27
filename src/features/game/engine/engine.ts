@@ -29,11 +29,14 @@ import {
 } from "./rules";
 
 /*
- * Open owner interpretations — do not invent answers; leave until clarified:
- * - takeBottom: only bottom card (current) vs whole pile?
- * - «Круг» for stumps/exit: discard flip cycle vs full turn orbit?
- * - Huyovye lead: next after tookLastDeckCard vs after last huyovye giver/receiver?
- * - Mid-main huyovye counters: orphan counters OK vs convert to card penalties?
+ * Owner-confirmed interpretations (2026-10-27):
+ * - takeBottom: only the bottom card of the pile (`shift`), never the whole pile.
+ * - «Круг» for stumps/exit: discard flip cycle — claim/exit require roundJustEnded
+ *   set by flipDiscard (not a full turn orbit).
+ * - First main lead after huyovye: next clockwise after tookLastDeckCardId (fixed;
+ *   not last huyovye giver/receiver).
+ * - Main-phase fouls convert to хуёвые card dumps: enqueue obligations and pause
+ *   Main → Huyovye until drained, then resume Main (never orphan counters).
  */
 
 export interface StartOptions {
@@ -142,6 +145,7 @@ export class GameEngine {
       prepareHeld: null,
       roundJustEnded: false,
       huyovyeQueue: [],
+      resumeMainAfterHuyovye: false,
       pendingWatchmanHandoff: false,
       watchmanAskCounts: {},
       lastFoul: null,
@@ -209,6 +213,86 @@ export class GameEngine {
       lastFoul: { playerId, foul },
       message: `Хуёвая: ${foul}`,
     };
+    // Main fouls (and mid-main gift pauses) convert to card dumps, not orphan counters.
+    if (this.shouldConvertFoulToCards()) {
+      this.enqueueFoulCardGifts(playerId);
+    }
+  }
+
+  /** True when a foul must become worst-card gifts from other seats. */
+  private shouldConvertFoulToCards(): boolean {
+    return (
+      this.state.phase === Phase.Main ||
+      (this.state.phase === Phase.Huyovye && this.state.resumeMainAfterHuyovye)
+    );
+  }
+
+  /**
+   * One huyovaya → one worst-to-keep gift from each other active seat
+   * (same scoring as prepare huyovye phase).
+   */
+  private enqueueFoulCardGifts(receiverId: number): void {
+    const active = activePlayers(this.state.players);
+    const additions: { giverId: number; receiverId: number }[] = [];
+    for (const giver of active) {
+      if (giver.id === receiverId) continue;
+      additions.push({ giverId: giver.id, receiverId });
+    }
+    if (additions.length === 0) return;
+    this.state = {
+      ...this.state,
+      huyovyeQueue: [...this.state.huyovyeQueue, ...additions],
+    };
+  }
+
+  /**
+   * After a Main foul mutates state (and usually advances the turn): if gifts
+   * were enqueued, pause into Huyovye; otherwise emit as usual.
+   */
+  private settleAfterPossibleMainFoul(): void {
+    if (
+      this.state.phase === Phase.Main &&
+      this.state.huyovyeQueue.length > 0
+    ) {
+      this.pauseMainForHuyovye();
+      return;
+    }
+    this.emit();
+  }
+
+  /** Pause Main into Huyovye until foul gifts drain; preserve table/lead. */
+  private pauseMainForHuyovye(): void {
+    this.state = {
+      ...this.state,
+      phase: Phase.Huyovye,
+      resumeMainAfterHuyovye: true,
+      message: `Хуёвые в основной: раздайте плохие карты (${this.state.huyovyeQueue.length})`,
+    };
+    this.emit();
+    this.runCpuHuyovye();
+  }
+
+  /** Queue empty: first-entry → begin Main; mid-main pause → resume Main. */
+  private onHuyovyeDrained(): void {
+    if (this.state.resumeMainAfterHuyovye) {
+      this.resumeMainAfterFoulHuyovye();
+    } else {
+      this.beginMainAfterHuyovye();
+    }
+  }
+
+  /** Restore Main after mid-foul gifts; keep pile, flip state, and active seat. */
+  private resumeMainAfterFoulHuyovye(): void {
+    const players = this.state.players.map((p) => ({ ...p, huyovye: 0 }));
+    this.state = {
+      ...this.state,
+      players,
+      huyovyeQueue: [],
+      phase: Phase.Main,
+      resumeMainAfterHuyovye: false,
+      message: "Основная игра",
+    };
+    this.emit();
   }
 
   // ——— Prepare ———
@@ -448,6 +532,7 @@ export class GameEngine {
       phase: Phase.Huyovye,
       prepareHeld: null,
       huyovyeQueue: queue,
+      resumeMainAfterHuyovye: false,
       message:
         queue.length === 0
           ? "Хуёвых нет — к основной"
@@ -514,7 +599,7 @@ export class GameEngine {
       };
       this.emit();
       if (queue.length === 0) {
-        this.beginMainAfterHuyovye();
+        this.onHuyovyeDrained();
       } else {
         this.runCpuHuyovye();
       }
@@ -542,7 +627,7 @@ export class GameEngine {
     };
     this.emit();
     if (queue.length === 0) {
-      this.beginMainAfterHuyovye();
+      this.onHuyovyeDrained();
       return true;
     }
     // After a human gift, finish any remaining CPU obligations.
@@ -592,18 +677,18 @@ export class GameEngine {
         this.state.phase === Phase.Huyovye &&
         this.state.huyovyeQueue.length === 0
       ) {
-        this.beginMainAfterHuyovye();
+        this.onHuyovyeDrained();
       }
     } finally {
       this.cpuHuyovyeRunning = false;
     }
   }
 
-  /** Start main once the huyovye queue is empty (no-op if gifts remain). */
+  /** Start / resume main once the huyovye queue is empty (no-op if gifts remain). */
   finishHuyovye(): boolean {
     if (this.state.phase !== Phase.Huyovye) return false;
     if (this.state.huyovyeQueue.length > 0) return false;
-    this.beginMainAfterHuyovye();
+    this.onHuyovyeDrained();
     return true;
   }
 
@@ -633,6 +718,7 @@ export class GameEngine {
         fixture.tookLastDeckCardId === undefined
           ? this.state.tookLastDeckCardId
           : fixture.tookLastDeckCardId,
+      resumeMainAfterHuyovye: false,
       message: "huyovye fixture",
     };
   }
@@ -700,6 +786,7 @@ export class GameEngine {
       prepareHeld: null,
       deck: [],
       huyovyeQueue: [],
+      resumeMainAfterHuyovye: false,
       players: fixture.players.map((p) => ({
         ...p,
         hand: p.hand.map(cloneCard),
@@ -716,9 +803,11 @@ export class GameEngine {
     };
   }
 
+  /**
+   * First entry into Main after prepare huyovye.
+   * Lead is fixed: next clockwise after tookLastDeckCardId (not last giver).
+   */
   private beginMainAfterHuyovye(): void {
-    // TODO(interpretation): lead = next after tookLastDeckCard (current)
-    // vs next after last huyovye giver/receiver.
     const players = this.state.players.map((p) => ({ ...p, huyovye: 0 }));
     const leadFrom =
       this.state.tookLastDeckCardId ?? this.state.dealerId;
@@ -727,6 +816,7 @@ export class GameEngine {
       ...this.state,
       players,
       huyovyeQueue: [],
+      resumeMainAfterHuyovye: false,
       phase: Phase.Main,
       activePlayerId: next,
       current: [],
@@ -751,7 +841,7 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.settleAfterPossibleMainFoul();
       return false;
     }
     if (this.state.activePlayerId !== playerId) {
@@ -763,7 +853,7 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.settleAfterPossibleMainFoul();
       return false;
     }
 
@@ -787,7 +877,7 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.settleAfterPossibleMainFoul();
       return false;
     }
 
@@ -800,7 +890,7 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.settleAfterPossibleMainFoul();
       return false;
     }
 
@@ -842,8 +932,8 @@ export class GameEngine {
   }
 
   /**
-   * Take bottom card of current pile (`shift`).
-   * TODO(interpretation): owner may clarify whole-pile take vs bottom-only.
+   * Cannot / won't beat → take **only the bottom** card of the current pile
+   * (`shift`). The rest of the pile stays on the table.
    */
   takeBottom(playerId: number): boolean {
     if (this.state.phase !== Phase.Main) return false;
@@ -882,7 +972,7 @@ export class GameEngine {
           playerId,
         ),
       };
-      this.emit();
+      this.settleAfterPossibleMainFoul();
       return false;
     }
 
@@ -918,9 +1008,11 @@ export class GameEngine {
     this.emit();
   }
 
+  /**
+   * «Круг» = discard flip cycle: only legal after flipDiscard sets roundJustEnded.
+   */
   claimStumps(playerId: number): boolean {
     if (this.state.phase !== Phase.Main) return false;
-    // TODO(interpretation): confirm «круг» = discard flip (roundJustEnded) only.
     if (!this.state.roundJustEnded) {
       return false;
     }
@@ -947,22 +1039,24 @@ export class GameEngine {
     return true;
   }
 
-  /** Peek stumps without announce → foul. */
+  /** Peek stumps without announce → foul (main → card gifts). */
   peekStumps(playerId: number): void {
     const self = findPlayer(this.state, playerId);
     if (!self.stumpsRevealed && self.stumps.length > 0) {
       this.awardFoul(playerId, Foul.LookedStumpsWithoutAnnounce);
-      this.emit();
+      this.settleAfterPossibleMainFoul();
     }
   }
 
+  /**
+   * «Круг» = discard flip cycle: only legal after flipDiscard sets roundJustEnded.
+   */
   exitGame(playerId: number): boolean {
     if (this.state.phase !== Phase.Main) return false;
     const self = findPlayer(this.state, playerId);
     if (self.hand.length > 0 || self.stumps.length > 0) {
       return false;
     }
-    // TODO(interpretation): confirm «круг» = discard flip (roundJustEnded) only.
     if (!this.state.roundJustEnded) {
       return false;
     }
@@ -1070,6 +1164,14 @@ export class GameEngine {
           playerId,
         ),
       };
+      this.settleAfterPossibleMainFoul();
+      return;
+    }
+    // Extra foul while draining mid-main gifts: enqueue more, let CPU continue.
+    if (this.state.resumeMainAfterHuyovye) {
+      this.emit();
+      this.runCpuHuyovye();
+      return;
     }
     this.emit();
   }
@@ -1253,7 +1355,7 @@ export class GameEngine {
       ...this.state,
       activePlayerId: nextClockwiseId(this.state.players, playerId),
     };
-    this.emit();
+    this.settleAfterPossibleMainFoul();
     return false;
   }
 
