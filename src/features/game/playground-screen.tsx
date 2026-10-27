@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect } from "react";
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   ViewStyle,
@@ -8,8 +8,12 @@ import {
   FlatList,
   ImageBackground,
   ListRenderItemInfo,
+  ScrollView,
+  Pressable,
+  useWindowDimensions,
 } from "react-native";
 import { Image } from "expo-image";
+import { RouteProp, useRoute } from "@react-navigation/native";
 import { Screen } from "@shared-components/screen/screen";
 import { Text } from "@shared-components/text/text";
 import { Button } from "@shared-components/button/button";
@@ -18,9 +22,15 @@ import { Card as CardType } from "./components/card/card.props";
 import { DragProvider, Draggable, DropZone } from "./components/drag-drop";
 import { Phase, EngineCard, EnginePlayer } from "./engine";
 import { useGameEngine } from "./use-game-engine";
-import { DEFAULT_SEATS, HUMAN_ID, PLAYER_AVATARS } from "./players";
+import {
+  DEFAULT_PLAYER_COUNT,
+  HUMAN_ID,
+  PLAYER_AVATARS,
+  buildSeats,
+} from "./players";
 import { CardWidth, cardHeight } from "@shared-constants";
 import { color, spacing, typography } from "theme";
+import { RootStackParamList } from "../../navigation/types";
 
 const BENCH_BACKGROUND = require("@assets/images/bench.png");
 const PLAYGROUND_BACKGROUND = require("@assets/images/playground.png");
@@ -38,14 +48,15 @@ const MAIN_CONTAINER: ViewStyle = {
   backgroundColor: color.transparent,
   paddingHorizontal: spacing[2],
 };
-const PLAYER: ViewStyle = { ...FLEX_CENTER };
-const TURN_CONTAINER: ViewStyle = { ...FULL, ...FLEX_CENTER };
+const PLAYER: ViewStyle = { ...FLEX_CENTER, maxWidth: 120 };
+const TURN_CONTAINER: ViewStyle = { ...FULL, ...FLEX_CENTER, minHeight: 200 };
 const TEXT: TextStyle = {
-  fontSize: 20,
+  fontSize: 16,
   color: color.palette.lighterGrey,
   fontFamily: typography.ngadong,
   textAlign: "center",
 };
+const SMALL: TextStyle = { ...TEXT, fontSize: 12 };
 const FOOTER: ViewStyle = { backgroundColor: "transparent" };
 const FOOTER_CONTENT: ViewStyle = {
   paddingVertical: spacing[2],
@@ -54,16 +65,22 @@ const FOOTER_CONTENT: ViewStyle = {
 const FLAT_LIST: ViewStyle = { paddingHorizontal: spacing[1] };
 const PLAYER_IMAGE: ImageStyle = {
   borderRadius: 18,
-  height: 89,
-  width: 84,
+  height: 56,
+  width: 52,
 };
-const TOP_CONTAINER: ViewStyle = {
-  display: "flex",
+const OPPONENTS_ROW: ViewStyle = {
   flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-around",
   alignItems: "flex-start",
-  justifyContent: "space-between",
-  padding: 4,
-  paddingVertical: 12,
+  gap: 8,
+  paddingVertical: 8,
+};
+const STATUS_BOX: ViewStyle = {
+  ...FLEX_CENTER,
+  paddingHorizontal: 8,
+  maxWidth: 220,
+  alignSelf: "center",
 };
 const DECK_CONTAINER: ViewStyle = {
   width: 102,
@@ -92,8 +109,20 @@ const BUTTON_STYLE: ImageStyle = {
 };
 const BUTTON_TEXT: TextStyle = {
   ...TEXT,
+  fontSize: 18,
   lineHeight: 52,
   letterSpacing: 2,
+};
+const BANNER: ViewStyle = {
+  backgroundColor: "rgba(0,0,0,0.55)",
+  padding: 12,
+  marginHorizontal: 8,
+  marginBottom: 8,
+  alignItems: "center",
+};
+const SELECTED_CARD: ViewStyle = {
+  borderWidth: 2,
+  borderColor: color.palette.orange,
 };
 
 const CARD_ITEM_LENGTH = CardWidth + 6;
@@ -102,14 +131,14 @@ function toUiCard(card: EngineCard, isStump = false): CardType {
   return { rank: card.rank, suit: card.suit, isStump };
 }
 
-function cardKey(card: CardType): string {
-  return `${card.rank}-${card.suit}-${card.isStump ? "s" : "h"}`;
+function cardKey(card: CardType, index = 0): string {
+  return `${card.rank}-${card.suit}-${card.isStump ? "s" : "h"}-${index}`;
 }
 
 function phaseLabel(phase: Phase): string {
   switch (phase) {
     case Phase.Prepare:
-      return "Раздача";
+      return "Набор";
     case Phase.Huyovye:
       return "Хуёвые";
     case Phase.Main:
@@ -121,24 +150,43 @@ function phaseLabel(phase: Phase): string {
   }
 }
 
+function sameCard(a: EngineCard, b: EngineCard): boolean {
+  return a.rank === b.rank && a.suit === b.suit;
+}
+
 export const PlaygroundScreen: FC = () => {
+  const route = useRoute<RouteProp<RootStackParamList, "Playground">>();
+  const playerCount = route.params?.playerCount ?? DEFAULT_PLAYER_COUNT;
+  const seats = useMemo(() => buildSeats(playerCount), [playerCount]);
+  const { width } = useWindowDimensions();
+
   const { engine, state } = useGameEngine({
-    seats: DEFAULT_SEATS,
-    seed: 42,
+    seats,
+    seed: 42 + playerCount,
   });
 
   const me = state.players.find((p) => p.id === HUMAN_ID);
   const opponents = state.players.filter((p) => p.id !== HUMAN_ID);
-  const left = opponents[0];
-  const right = opponents[1];
   const isMyTurn = state.activePlayerId === HUMAN_ID;
   const active = state.players.find((p) => p.id === state.activePlayerId);
+  const watchman = state.players.find((p) => p.id === state.watchmanId);
+
+  const [huyovyePick, setHuyovyePick] = useState<EngineCard | null>(null);
+
+  const myProtocols = me ? engine.protocolsFor(me.id) : [];
+  const humanHuyovyeDue = state.huyovyeQueue.filter(
+    (q) => q.giverId === HUMAN_ID,
+  );
 
   useEffect(() => {
     if (!active?.isCPU || !active.active) {
       return undefined;
     }
-    if (state.phase !== Phase.Prepare && state.phase !== Phase.Main) {
+    if (
+      state.phase !== Phase.Prepare &&
+      state.phase !== Phase.Main &&
+      state.phase !== Phase.Huyovye
+    ) {
       return undefined;
     }
     const t = setTimeout(() => engine.runCpuTurn(), 450);
@@ -152,6 +200,7 @@ export const PlaygroundScreen: FC = () => {
     state.current.length,
     state.discardPendingFlip,
     state.roundJustEnded,
+    state.huyovyeQueue.length,
     engine,
   ]);
 
@@ -182,7 +231,6 @@ export const PlaygroundScreen: FC = () => {
           rank: card.rank,
           suit: card.suit,
         });
-        return;
       }
     },
     [engine, isMyTurn, state.phase],
@@ -196,6 +244,15 @@ export const PlaygroundScreen: FC = () => {
     [engine, isMyTurn, state.phase],
   );
 
+  const giveHuyovye = useCallback(
+    (receiverId: number) => {
+      if (!huyovyePick) return;
+      const ok = engine.giveHuyovyeCard(HUMAN_ID, receiverId, huyovyePick);
+      if (ok) setHuyovyePick(null);
+    },
+    [engine, huyovyePick],
+  );
+
   const handData: CardType[] = me
     ? [
         ...me.hand.map((c) => toUiCard(c)),
@@ -204,19 +261,36 @@ export const PlaygroundScreen: FC = () => {
     : [];
 
   const renderHandItem = useCallback(
-    ({ item }: ListRenderItemInfo<CardType>) => (
-      <Draggable
-        data={item}
-        disabled={
-          !!item.isStump ||
-          !isMyTurn ||
-          (state.phase !== Phase.Prepare && state.phase !== Phase.Main)
-        }
-      >
-        <Card {...item} opened={!item.isStump} />
-      </Draggable>
-    ),
-    [isMyTurn, state.phase],
+    ({ item, index }: ListRenderItemInfo<CardType>) => {
+      if (state.phase === Phase.Huyovye && !item.isStump) {
+        const selected =
+          huyovyePick != null &&
+          sameCard(huyovyePick, { rank: item.rank, suit: item.suit });
+        return (
+          <Pressable
+            onPress={() =>
+              setHuyovyePick({ rank: item.rank, suit: item.suit })
+            }
+            style={selected ? SELECTED_CARD : undefined}
+          >
+            <Card {...item} opened />
+          </Pressable>
+        );
+      }
+      return (
+        <Draggable
+          data={item}
+          disabled={
+            !!item.isStump ||
+            !isMyTurn ||
+            (state.phase !== Phase.Prepare && state.phase !== Phase.Main)
+          }
+        >
+          <Card key={cardKey(item, index)} {...item} opened={!item.isStump} />
+        </Draggable>
+      );
+    },
+    [huyovyePick, isMyTurn, state.phase],
   );
 
   const getItemLayout = useCallback(
@@ -228,12 +302,12 @@ export const PlaygroundScreen: FC = () => {
     [],
   );
 
-  if (!me || !left || !right) {
+  if (!me) {
     return null;
   }
 
-  const trumpLabel =
-    state.trump === null ? "нет" : String(state.trump);
+  const trumpLabel = state.trump === null ? "нет" : String(state.trump);
+  const seatChipWidth = Math.max(72, Math.min(110, (width - 24) / Math.max(3, opponents.length)));
 
   return (
     <DragProvider>
@@ -248,36 +322,43 @@ export const PlaygroundScreen: FC = () => {
             preset="scroll"
             backgroundColor={color.transparent}
           >
-            <View testID="TopContainer" style={TOP_CONTAINER}>
-              <OpponentSlot
-                player={left}
-                phase={state.phase}
-                isMyTurn={isMyTurn}
-                avatar={PLAYER_AVATARS[left.id]}
-                onDrop={(card) => onDropToPlayer(left, card)}
+            <View style={STATUS_BOX}>
+              <Text
+                style={SMALL}
+                text={`Стол: ${state.players.length} · Вахта: ${watchman?.name ?? "—"} · Дилер: ${
+                  state.players.find((p) => p.id === state.dealerId)?.name ?? "—"
+                }`}
               />
-              <View style={PLAYER}>
-                <Text style={TEXT} text={phaseLabel(state.phase)} />
-                <Text
-                  style={TEXT}
-                  text={`Ходит:\n ${active?.name || ""}`}
-                />
-                {state.phase === Phase.Main ||
-                state.phase === Phase.Huyovye ? (
-                  <Text style={TEXT} text={`Козырь:\n ${trumpLabel}`} />
-                ) : null}
-                {state.message ? (
-                  <Text style={TEXT} text={state.message} />
-                ) : null}
-              </View>
-              <OpponentSlot
-                player={right}
-                phase={state.phase}
-                isMyTurn={isMyTurn}
-                avatar={PLAYER_AVATARS[right.id]}
-                onDrop={(card) => onDropToPlayer(right, card)}
-              />
+              <Text style={TEXT} text={phaseLabel(state.phase)} />
+              <Text style={TEXT} text={`Ходит: ${active?.name || ""}`} />
+              {state.phase === Phase.Main || state.phase === Phase.Huyovye ? (
+                <Text style={TEXT} text={`Козырь: ${trumpLabel}`} />
+              ) : null}
+              {state.message ? (
+                <Text style={SMALL} text={state.message} />
+              ) : null}
             </View>
+
+            <View style={OPPONENTS_ROW} testID="OpponentsRow">
+              {opponents.map((p) => (
+                <View key={p.id} style={[PLAYER, { width: seatChipWidth }]}>
+                  <OpponentSlot
+                    player={p}
+                    phase={state.phase}
+                    isMyTurn={isMyTurn}
+                    outstanding={engine.huyovyeOutstanding(p.id)}
+                    canReceiveHuyovye={
+                      state.phase === Phase.Huyovye &&
+                      humanHuyovyeDue.some((q) => q.receiverId === p.id) &&
+                      huyovyePick != null
+                    }
+                    onDrop={(card) => onDropToPlayer(p, card)}
+                    onHuyovyeTap={() => giveHuyovye(p.id)}
+                  />
+                </View>
+              ))}
+            </View>
+
             <View testID="TurnContainer" style={TURN_CONTAINER}>
               <ImageBackground
                 resizeMode="stretch"
@@ -285,7 +366,10 @@ export const PlaygroundScreen: FC = () => {
                 source={BENCH_BACKGROUND}
               >
                 {state.phase === Phase.Prepare && state.prepareHeld ? (
-                  <Draggable data={toUiCard(state.prepareHeld)} disabled={!isMyTurn}>
+                  <Draggable
+                    data={toUiCard(state.prepareHeld)}
+                    disabled={!isMyTurn}
+                  >
                     <Card {...toUiCard(state.prepareHeld)} opened />
                   </Draggable>
                 ) : null}
@@ -293,9 +377,7 @@ export const PlaygroundScreen: FC = () => {
                   <View testID="DeckContainer" style={DECK_CONTAINER}>
                     {state.deck.length > 0 || state.beaten.length > 0 ? (
                       <Card
-                        {...toUiCard(
-                          state.deck[0] || state.beaten[0],
-                        )}
+                        {...toUiCard(state.deck[0] || state.beaten[0])}
                         opened={false}
                         animation={false}
                       />
@@ -308,18 +390,80 @@ export const PlaygroundScreen: FC = () => {
                     disabled={!isMyTurn || state.discardPendingFlip}
                     onDrop={onDropMain}
                   >
-                    {state.current.map((card) => (
+                    {state.current.map((card, i) => (
                       <Card
-                        key={cardKey(toUiCard(card))}
+                        key={cardKey(toUiCard(card), i)}
                         {...toUiCard(card)}
                         opened
                       />
                     ))}
                   </DropZone>
                 ) : null}
+                {state.phase === Phase.Huyovye ? (
+                  <View style={FLEX_CENTER}>
+                    <Text
+                      style={TEXT}
+                      text={
+                        humanHuyovyeDue.length
+                          ? "Выбери карту внизу и ткни в должника"
+                          : "Ждём раздачу хуёвых…"
+                      }
+                    />
+                    <Text
+                      style={SMALL}
+                      text={`Осталось обязательств: ${state.huyovyeQueue.length}`}
+                    />
+                  </View>
+                ) : null}
               </ImageBackground>
             </View>
           </Screen>
+
+          {state.pendingWatchmanHandoff ? (
+            <View style={BANNER} testID="WatchmanHandoffBanner">
+              <Text style={TEXT} text={state.message ?? "Вахту сдал"} />
+              <Button
+                style={BUTTON_WRAPPER}
+                textStyle={TEXT}
+                text="ПРИНЯТЬ ВАХТУ"
+                onPress={() => engine.acceptWatchmanHandoff()}
+              />
+              {state.watchmanId != null ? (
+                <Button
+                  style={BUTTON_WRAPPER}
+                  textStyle={SMALL}
+                  text="КТО НА ВАХТЕ?"
+                  onPress={() => engine.askWhoIsWatchman(HUMAN_ID)}
+                />
+              ) : null}
+            </View>
+          ) : null}
+
+          {state.phase === Phase.Ended &&
+          !state.pendingWatchmanHandoff &&
+          activePlayersStill(state.players).length <= 2 ? (
+            <View style={BANNER}>
+              <Text style={TEXT} text="Дуэль окончена / вахта назначена" />
+              {state.watchmanAskCounts[HUMAN_ID] ? (
+                <Button
+                  style={BUTTON_WRAPPER}
+                  textStyle={SMALL}
+                  text="ОТВЕТИТЬ НА «КТО НА ВАХТЕ?»"
+                  onPress={() =>
+                    state.watchmanId != null &&
+                    engine.answerWatchman(state.watchmanId, HUMAN_ID)
+                  }
+                />
+              ) : (
+                <Button
+                  style={BUTTON_WRAPPER}
+                  textStyle={SMALL}
+                  text="КТО НА ВАХТЕ?"
+                  onPress={() => engine.askWhoIsWatchman(HUMAN_ID)}
+                />
+              )}
+            </View>
+          ) : null}
 
           {state.phase === Phase.Prepare &&
           isMyTurn &&
@@ -358,38 +502,55 @@ export const PlaygroundScreen: FC = () => {
             />
           ) : null}
 
-          {state.phase === Phase.Main &&
-          isMyTurn &&
-          state.roundJustEnded &&
-          me.hand.length === 0 &&
-          me.stumps.length > 0 ? (
-            <Button
-              testID="show-stumps-button"
-              style={BUTTON_WRAPPER}
-              onPress={() => engine.claimStumps(HUMAN_ID)}
-            >
-              <ImageBackground
-                resizeMode="contain"
-                style={BUTTON_STYLE}
-                source={BUTTON_BACKGROUND}
+          {myProtocols.includes("claim_stumps") ? (
+            <View style={BANNER} testID="ClaimStumpsPrompt">
+              <Text style={TEXT} text="Беру пни / пеньки / дубки!" />
+              <Button
+                testID="show-stumps-button"
+                style={BUTTON_WRAPPER}
+                onPress={() => engine.claimStumps(HUMAN_ID)}
               >
-                <Text tx="playgroundScreen.showStumps" style={BUTTON_TEXT} />
-              </ImageBackground>
-            </Button>
+                <ImageBackground
+                  resizeMode="contain"
+                  style={BUTTON_STYLE}
+                  source={BUTTON_BACKGROUND}
+                >
+                  <Text
+                    tx="playgroundScreen.showStumps"
+                    style={BUTTON_TEXT}
+                  />
+                </ImageBackground>
+              </Button>
+            </View>
+          ) : null}
+
+          {myProtocols.includes("exit") ? (
+            <View style={BANNER} testID="ExitPrompt">
+              <Text style={TEXT} text="С пидорами не играю!" />
+              <Button
+                testID="exit-game-button"
+                style={BUTTON_WRAPPER}
+                textStyle={TEXT}
+                text="ВЫЙТИ ИЗ ИГРЫ"
+                onPress={() => engine.exitGame(HUMAN_ID)}
+              />
+            </View>
           ) : null}
 
           {state.phase === Phase.Main &&
-          state.roundJustEnded &&
-          me.hand.length === 0 &&
-          me.stumps.length === 0 &&
-          me.active ? (
-            <Button
-              testID="exit-game-button"
-              style={BUTTON_WRAPPER}
-              textStyle={TEXT}
-              text="С ПИДОРАМИ НЕ ИГРАЮ"
-              onPress={() => engine.exitGame(HUMAN_ID)}
-            />
+          activePlayersStill(state.players).length === 2 &&
+          !state.pendingWatchmanHandoff ? (
+            <ScrollView horizontal contentContainerStyle={{ gap: 8, padding: 8 }}>
+              {activePlayersStill(state.players).map((p) => (
+                <Button
+                  key={`duel-lose-${p.id}`}
+                  style={BUTTON_WRAPPER}
+                  textStyle={SMALL}
+                  text={`Вахта → ${p.name}`}
+                  onPress={() => engine.setWatchman(p.id)}
+                />
+              ))}
+            </ScrollView>
           ) : null}
 
           <SafeAreaView style={FOOTER}>
@@ -402,7 +563,7 @@ export const PlaygroundScreen: FC = () => {
                   horizontal
                   contentContainerStyle={FLAT_LIST}
                   data={handData}
-                  keyExtractor={cardKey}
+                  keyExtractor={(item, index) => cardKey(item, index)}
                   renderItem={renderHandItem}
                   getItemLayout={getItemLayout}
                   windowSize={5}
@@ -420,40 +581,77 @@ export const PlaygroundScreen: FC = () => {
   );
 };
 
+function activePlayersStill(players: EnginePlayer[]): EnginePlayer[] {
+  return players.filter((p) => p.active);
+}
+
 function OpponentSlot({
   player,
   phase,
   isMyTurn,
-  avatar,
+  outstanding,
+  canReceiveHuyovye,
   onDrop,
+  onHuyovyeTap,
 }: {
   player: EnginePlayer;
   phase: Phase;
   isMyTurn: boolean;
-  avatar: number;
+  outstanding: number;
+  canReceiveHuyovye: boolean;
   onDrop: (card: CardType) => void;
+  onHuyovyeTap: () => void;
 }) {
   const top = player.hand[0];
   const stump = player.stumps[0];
+  const avatar = PLAYER_AVATARS[player.id];
+
+  const body = (
+    <>
+      {typeof avatar === "number" ? (
+        <Image source={avatar} contentFit="contain" style={PLAYER_IMAGE} />
+      ) : null}
+      <Text style={SMALL} text={player.name} />
+      <Text
+        style={SMALL}
+        text={
+          player.active
+            ? outstanding > 0
+              ? `ждёт ${outstanding}`
+              : `карт ${player.hand.length}`
+            : "вышел"
+        }
+      />
+      {top ? (
+        <Card {...toUiCard(top)} opened={phase === Phase.Prepare || phase === Phase.Huyovye} />
+      ) : stump ? (
+        <Card {...toUiCard(stump, true)} opened={false} />
+      ) : (
+        <Text style={SMALL} text="—" />
+      )}
+    </>
+  );
+
+  if (phase === Phase.Huyovye) {
+    return (
+      <Pressable
+        disabled={!canReceiveHuyovye}
+        onPress={onHuyovyeTap}
+        style={PLAYER}
+        testID={`huyovye-target-${player.id}`}
+      >
+        {body}
+      </Pressable>
+    );
+  }
+
   return (
     <View style={PLAYER}>
-      <Image source={avatar} contentFit="contain" style={PLAYER_IMAGE} />
-      <Text style={TEXT} text={player.name} />
-      <Text
-        style={TEXT}
-        text={player.active ? `хуёвых: ${player.huyovye}` : "вышел"}
-      />
       <DropZone
         disabled={!isMyTurn || phase !== Phase.Prepare || !player.active}
         onDrop={onDrop}
       >
-        {top ? (
-          <Card {...toUiCard(top)} opened={phase === Phase.Prepare} />
-        ) : stump ? (
-          <Card {...toUiCard(stump, true)} opened={false} />
-        ) : (
-          <Text style={TEXT} text="Нет карт" />
-        )}
+        {body}
       </DropZone>
     </View>
   );

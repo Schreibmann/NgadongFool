@@ -11,6 +11,8 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
     "export:web": "expo export --platform web",
+    "build:web": "expo export --platform web",
+    "vercel-build": "expo export --platform web",
     "test": "jest",
     "ci": "npm run lint && npm run typecheck && npm test && npm run export:web"
   },
