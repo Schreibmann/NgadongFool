@@ -1,27 +1,20 @@
 import i18n from "i18n-js";
-// import en from "./en.json"
-// import ja from "./ja.json"
 import ru from "./ru.json";
 
 i18n.fallbacks = true;
 i18n.translations = { ru };
+i18n.locale = "ru";
 
-i18n.locale = "ru"; // Localization.locale || "ru"
-
-/**
- * Builds up valid keypaths for translations.
- * Update to your default locale of choice if not English.
- */
 type DefaultLocale = typeof ru;
-export type TxKeyPath = RecursiveKeyOf<DefaultLocale>;
 
-// via: https://stackoverflow.com/a/65333050
-type RecursiveKeyOf<TObj extends object> = {
-  [TKey in keyof TObj & (string | number)]: RecursiveKeyOfHandleValue<
-    TObj[TKey],
-    `${TKey}`
-  >;
-}[keyof TObj & (string | number)];
+type RecursiveKeyOfHandleValue<
+  TValue,
+  Text extends string,
+> = TValue extends readonly unknown[]
+  ? Text
+  : TValue extends object
+    ? Text | `${Text}${RecursiveKeyOfInner<TValue>}`
+    : Text;
 
 type RecursiveKeyOfInner<TObj extends object> = {
   [TKey in keyof TObj & (string | number)]: RecursiveKeyOfHandleValue<
@@ -30,11 +23,11 @@ type RecursiveKeyOfInner<TObj extends object> = {
   >;
 }[keyof TObj & (string | number)];
 
-type RecursiveKeyOfHandleValue<
-  TValue,
-  Text extends string,
-> = TValue extends any[]
-  ? Text
-  : TValue extends object
-  ? Text | `${Text}${RecursiveKeyOfInner<TValue>}`
-  : Text;
+type RecursiveKeyOf<TObj extends object> = {
+  [TKey in keyof TObj & (string | number)]: RecursiveKeyOfHandleValue<
+    TObj[TKey],
+    `${TKey}`
+  >;
+}[keyof TObj & (string | number)];
+
+export type TxKeyPath = RecursiveKeyOf<DefaultLocale>;

@@ -63,3 +63,17 @@ buck-out/
 
 # CocoaPods
 /ios/Pods/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+*.orig.*
+
+# EAS
+eas-update-preview/
