@@ -138,6 +138,11 @@ const HUYOVYE_BANNER: ViewStyle = {
   borderWidth: 1,
   borderColor: color.palette.orange,
 };
+const PREPARE_DROP_HIT: ViewStyle = {
+  minWidth: 72,
+  minHeight: 120,
+  alignItems: "center",
+};
 
 /** 50% overlap: each next card covers half of the previous. */
 const CARD_FAN_PULL = -CardWidth * 0.5;
@@ -205,11 +210,10 @@ export const PlaygroundScreen: FC = () => {
     state.phase === Phase.Prepare && prepareDumpCard
       ? peekFirstPrepareTarget(state, HUMAN_ID, prepareDumpCard)
       : null;
+  // ЗАБРАТЬ always available with a held card; keeping while a dump is
+  // mandatory awards FailedToDumpLegal in the engine.
   const canKeepPrepare =
-    state.phase === Phase.Prepare &&
-    isMyTurn &&
-    state.prepareHeld != null &&
-    legalPrepareTarget == null;
+    state.phase === Phase.Prepare && isMyTurn && state.prepareHeld != null;
 
   useEffect(() => {
     if (state.phase === Phase.Huyovye) {
@@ -410,7 +414,6 @@ export const PlaygroundScreen: FC = () => {
                   <OpponentSlot
                     player={p}
                     phase={state.phase}
-                    isMyTurn={isMyTurn}
                     prepareDropEnabled={
                       isMyTurn &&
                       state.phase === Phase.Prepare &&
@@ -756,8 +759,12 @@ function OpponentSlot({
   }
 
   return (
-    <View style={PLAYER}>
-      <DropZone disabled={!prepareDropEnabled} onDrop={onDrop}>
+    <View style={PLAYER} testID={`prepare-target-${player.id}`}>
+      <DropZone
+        disabled={!prepareDropEnabled}
+        onDrop={onDrop}
+        style={PREPARE_DROP_HIT}
+      >
         {body}
       </DropZone>
     </View>

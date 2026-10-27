@@ -27,6 +27,47 @@ function readMeasureInWindow(node: unknown): MeasureFn | null {
   return candidate.bind(node);
 }
 
+/** Prefer DOM rect on web — matches pointer pageX/pageY under scroll. */
+function readBoundingClientRect(
+  node: unknown,
+): { x: number; y: number; width: number; height: number } | null {
+  if (typeof node !== "object" || node === null) {
+    return null;
+  }
+  if (!("getBoundingClientRect" in node)) {
+    return null;
+  }
+  const candidate = node.getBoundingClientRect;
+  if (typeof candidate !== "function") {
+    return null;
+  }
+  const rect = candidate.call(node);
+  if (typeof rect !== "object" || rect === null) {
+    return null;
+  }
+  if (
+    !("left" in rect) ||
+    !("top" in rect) ||
+    !("width" in rect) ||
+    !("height" in rect)
+  ) {
+    return null;
+  }
+  const left = rect.left;
+  const top = rect.top;
+  const width = rect.width;
+  const height = rect.height;
+  if (
+    typeof left !== "number" ||
+    typeof top !== "number" ||
+    typeof width !== "number" ||
+    typeof height !== "number"
+  ) {
+    return null;
+  }
+  return { x: left, y: top, width, height };
+}
+
 let dropZoneSeq = 0;
 
 export function DropZone({
@@ -53,6 +94,11 @@ export function DropZone({
       onDrop,
       measure: () =>
         new Promise((resolve) => {
+          const dom = readBoundingClientRect(hostRef.current);
+          if (dom) {
+            resolve(dom);
+            return;
+          }
           const measureInWindow = readMeasureInWindow(hostRef.current);
           if (!measureInWindow) {
             resolve(null);

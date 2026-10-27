@@ -145,9 +145,10 @@ A prepare turn is a repeating cycle "draw → dump":
      (resolved interpretation R2).
    - The drawer keeps it (front of hand), phase → Huyovye (batch).
 5. Otherwise: find the mandatory placement target (§5.2). If one exists, the card
-   MUST be placed on it (`keepPrepare` must reject and foul P4), then return to
-   step 1. If none exists, `keepPrepare` puts it in the drawer's hand (front) and
-   the turn passes clockwise.
+   MUST be placed on it. Humans place via drag-and-drop only (CPU auto-places).
+   If the human keeps instead (`keepPrepare`), award foul P4 and still keep the
+   card / pass the turn. If none exists, `keepPrepare` puts it in the drawer's
+   hand (front) and the turn passes clockwise.
 
 Fouls during Prepare only increment `huyovye` — they do **not** interrupt into
 Huyovye mid-prepare.
@@ -199,8 +200,9 @@ The last card of a hand is never given away (foul P8 if attempted).
 **Resolved interpretation R3:** `sixOnAceRestriction: "off"` (pip-six block not
 default).
 
-**UI (Q7 closed):** only the first-clockwise legal `DropZone` is enabled; "ЗАБРАТЬ"
-is hidden while a legal dump target exists.
+**UI (Q7 closed):** only the first-clockwise legal `DropZone` is enabled for
+drag-and-drop; "ЗАБРАТЬ" remains available — keeping while a dump is mandatory
+awards P4. Humans never auto-place; CPU does.
 
 ---
 
@@ -362,8 +364,9 @@ the deck is empty (§6.1).
    `peekFirstPrepareTarget` / `legalPrepareTargets` — does not duplicate rules.
 2. **Hidden information:** stumps and deck are not shown until rules allow.
 3. **Immutable snapshots:** `emit()` clones arrays; listeners see frozen state.
-4. **Mandatory dump:** `keepPrepare` fouls P4 and **rejects** keep when a legal
-   target exists; UI enables only that target and hides "ЗАБРАТЬ".
+4. **Mandatory dump:** `keepPrepare` fouls P4 when a legal target exists but
+   still completes the keep; UI enables only the first legal DropZone for DnD;
+   humans never auto-place (CPU may).
 5. **No silent truncation:** cascade ends by emptiness / no targets; guard logs.
 6. **Determinism:** RNG seed fixed in tests; actions log legal / foul.
 
@@ -380,5 +383,5 @@ the deck is empty (§6.1).
 5. Enforce P17 with a real deadline (timeout) mechanism.
 6. Human deadlock in Huyovye when a giver has only one card — obligation dropped
    identically for humans and CPUs (CPU path done; keep human path identical).
-7. ~~UI affordance for six-on-ace / mandatory dump.~~ **CLOSED: gate DropZones +
-   hide "ЗАБРАТЬ".**
+7. ~~UI affordance for six-on-ace / mandatory dump.~~ **CLOSED: gate DropZones for
+   DnD; "ЗАБРАТЬ" fouls P4 if dump was mandatory.**

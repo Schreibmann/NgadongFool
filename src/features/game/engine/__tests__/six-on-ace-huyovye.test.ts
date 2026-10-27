@@ -64,7 +64,7 @@ describe("six on ace / keepPrepare", () => {
     });
   });
 
-  it("rejects keepPrepare when a legal dump target exists", () => {
+  it("awards FailedToDumpLegal when keeping while a legal dump exists", () => {
     const eng = new GameEngine({ seats: seats3, seed: 2 });
     const six = { rank: CardRanks.six, suit: CardSuits.Diamonds };
     eng.loadTestFixture({
@@ -85,11 +85,13 @@ describe("six on ace / keepPrepare", () => {
       ],
     });
 
-    expect(eng.keepPrepare(3)).toBe(false);
+    expect(eng.keepPrepare(3)).toBe(true);
     const s = eng.getSnapshot();
-    expect(s.prepareHeld).toEqual(six);
+    expect(s.prepareHeld).toBeNull();
     expect(s.lastFoul?.foul).toBe(Foul.FailedToDumpLegal);
-    expect(s.phase).toBe(Phase.Prepare);
+    expect(s.players.find((p) => p.id === 3)?.huyovye).toBe(1);
+    expect(s.players.find((p) => p.id === 3)?.hand[0]).toEqual(six);
+    expect(s.activePlayerId).not.toBe(3);
   });
 });
 

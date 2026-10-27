@@ -67,6 +67,7 @@ function CardComponent(props: CardProps) {
         contentFit="cover"
         cachePolicy="memory-disk"
         transition={0}
+        draggable={false}
       />
       {isStump ? (
         <View style={styles.stumpOverlay} pointerEvents="none">

@@ -469,10 +469,10 @@ export class GameEngine {
       playerId,
       held,
     );
+    // Skipping a mandatory dump is a foul, but the keep still happens
+    // (player chose not to place — turn passes with хуёвая).
     if (first) {
       this.awardFoul(playerId, Foul.FailedToDumpLegal);
-      this.emit();
-      return false;
     }
     const players = this.state.players.map((p) =>
       p.id === playerId
@@ -484,7 +484,9 @@ export class GameEngine {
       players,
       prepareHeld: null,
       activePlayerId: nextClockwiseId(players, playerId),
-      message: `${findPlayer(this.state, playerId).name} забирает`,
+      message: first
+        ? `${findPlayer(this.state, playerId).name} забирает (фол: не положил)`
+        : `${findPlayer(this.state, playerId).name} забирает`,
     };
     this.emit();
     return true;

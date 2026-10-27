@@ -23,6 +23,8 @@ interface DragContextValue {
   ) => Promise<DropZoneRegistration | null>;
 }
 
+const HIT_PAD = 16;
+
 const DragContext = React.createContext<DragContextValue | null>(null);
 
 export function DragProvider({ children }: { children: React.ReactNode }) {
@@ -37,24 +39,33 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
 
   const findDropZoneAt = React.useCallback(
     async (pageX: number, pageY: number) => {
-      const zones = Array.from(zonesRef.current.values()).filter(
-        (zone) => !zone.disabled,
-      );
-      for (const zone of zones) {
-        const layout = await zone.measure();
-        if (!layout) {
+      const all = Array.from(zonesRef.current.values());
+      let best: DropZoneRegistration | null = null;
+      let bestArea = Number.POSITIVE_INFINITY;
+
+      for (const zone of all) {
+        if (zone.disabled) {
           continue;
         }
-        const hit =
-          pageX >= layout.x &&
-          pageX <= layout.x + layout.width &&
-          pageY >= layout.y &&
-          pageY <= layout.y + layout.height;
-        if (hit) {
-          return zone;
+        const layout = await zone.measure();
+        if (
+          layout == null ||
+          layout.width <= 0 ||
+          layout.height <= 0 ||
+          pageX < layout.x - HIT_PAD ||
+          pageX > layout.x + layout.width + HIT_PAD ||
+          pageY < layout.y - HIT_PAD ||
+          pageY > layout.y + layout.height + HIT_PAD
+        ) {
+          continue;
+        }
+        const area = layout.width * layout.height;
+        if (area < bestArea) {
+          bestArea = area;
+          best = zone;
         }
       }
-      return null;
+      return best;
     },
     [],
   );
