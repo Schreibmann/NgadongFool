@@ -8,6 +8,13 @@
     "userInterfaceStyle": "automatic",
     "scheme": "ngadongfool",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/YOUR_EAS_PROJECT_ID"
+    },
     "splash": {
       "image": "./assets/splash.jpg",
       "resizeMode": "cover",
@@ -44,7 +51,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "replace-with-eas-project-id"
+        "projectId": "YOUR_EAS_PROJECT_ID"
       }
     }
   }
