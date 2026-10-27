@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useState } from "react";
 import {
   View,
   ViewStyle,
@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ImageStyle,
   ImageBackground,
+  Pressable,
 } from "react-native";
 import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
@@ -16,6 +17,11 @@ import { Button } from "@shared-components/button/button";
 import { Text } from "@shared-components/text/text";
 import { SCREENS } from "@shared-constants";
 import { RootStackParamList } from "../../navigation/types";
+import {
+  DEFAULT_PLAYER_COUNT,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+} from "@features/game/players";
 
 const BUTTON_BACKGROUND = require("@assets/images/button-background.png");
 const LOGO_TOP = require("@assets/images/logo.png");
@@ -57,6 +63,7 @@ const FOOTER: ViewStyle = { backgroundColor: "transparent" };
 const FOOTER_CONTENT: ViewStyle = {
   paddingVertical: spacing[4],
   paddingHorizontal: spacing[4],
+  alignItems: "center",
 };
 const IMAGE: ImageStyle = {
   width: 320,
@@ -80,12 +87,44 @@ const PLAY_BUTTON_STYLE: ImageStyle = {
   width: 230,
   height: 86,
 };
+const COUNT_ROW: ViewStyle = {
+  flexDirection: "row",
+  gap: 10,
+  marginBottom: spacing[3],
+  justifyContent: "center",
+};
+const COUNT_CHIP: ViewStyle = {
+  minWidth: 48,
+  paddingVertical: 8,
+  paddingHorizontal: 12,
+  borderWidth: 1,
+  borderColor: color.palette.lighterGrey,
+  alignItems: "center",
+};
+const COUNT_CHIP_ON: ViewStyle = {
+  ...COUNT_CHIP,
+  backgroundColor: color.palette.orange,
+  borderColor: color.palette.orange,
+};
+const COUNT_LABEL: TextStyle = {
+  ...TEXT,
+  fontSize: 16,
+  marginBottom: spacing[2],
+};
 
 type WelcomeNav = NativeStackNavigationProp<RootStackParamList, "Home">;
 
+const COUNTS = Array.from(
+  { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
+  (_, i) => MIN_PLAYERS + i,
+);
+
 export const WelcomeScreen: FC = () => {
   const navigation = useNavigation<WelcomeNav>();
-  const navigateToPlayground = () => navigation.navigate(SCREENS.PLAYGROUND);
+  const [playerCount, setPlayerCount] = useState(DEFAULT_PLAYER_COUNT);
+
+  const navigateToPlayground = () =>
+    navigation.navigate(SCREENS.PLAYGROUND, { playerCount });
 
   return (
     <View testID="WelcomeScreen" style={FULL}>
@@ -116,6 +155,22 @@ export const WelcomeScreen: FC = () => {
       </Screen>
       <SafeAreaView style={FOOTER}>
         <View style={FOOTER_CONTENT}>
+          <Text style={COUNT_LABEL} text="Игроков за столом" />
+          <View style={COUNT_ROW}>
+            {COUNTS.map((n) => (
+              <Pressable
+                key={n}
+                testID={`player-count-${n}`}
+                onPress={() => setPlayerCount(n)}
+                style={playerCount === n ? COUNT_CHIP_ON : COUNT_CHIP}
+              >
+                <Text
+                  style={TEXT}
+                  text={String(n)}
+                />
+              </Pressable>
+            ))}
+          </View>
           <Button
             testID="next-screen-button"
             style={PLAY}

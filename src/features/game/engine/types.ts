@@ -54,12 +54,22 @@ export interface SeatConfig {
   isCPU: boolean;
 }
 
+/** One bad-card gift owed during huyovye (one huyovaya → one gift from each other seat). */
+export interface HuyovyeObligation {
+  giverId: PlayerId;
+  receiverId: PlayerId;
+}
+
+export type ProtocolKind = "claim_stumps" | "exit" | "watchman_handoff";
+
 export interface GameState {
   phase: Phase;
   deck: EngineCard[];
   players: EnginePlayer[];
   dealerId: PlayerId;
   watchmanId: PlayerId | null;
+  /** Previous watchman before the latest handoff (for «вахту сдал»). */
+  previousWatchmanId: PlayerId | null;
   activePlayerId: PlayerId;
   trump: CardSuits | null;
   /** Main-game pile (bottom at index 0). */
@@ -74,7 +84,11 @@ export interface GameState {
   prepareHeld: EngineCard | null;
   /** After a discard cycle completes (flipped). */
   roundJustEnded: boolean;
-  /** Watchman asks remaining for this deal (UI stub counter). */
+  /** Pending manual huyovye gifts (giver → receiver). */
+  huyovyeQueue: HuyovyeObligation[];
+  /** True while UI should confirm watchman handoff. */
+  pendingWatchmanHandoff: boolean;
+  /** Watchman asks remaining for this deal. */
   watchmanAskCounts: Record<PlayerId, number>;
   lastFoul: { playerId: PlayerId; foul: Foul } | null;
   message: string | null;

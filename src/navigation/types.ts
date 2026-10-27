@@ -1,4 +1,4 @@
 export type RootStackParamList = {
   Home: undefined;
-  Playground: undefined;
+  Playground: { playerCount: number };
 };

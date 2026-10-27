@@ -86,6 +86,19 @@ GitHub Action `.github/workflows/ci.yml` runs on pull requests and pushes to `de
 4. `npm test`
 5. `npm run export:web`
 
+## Vercel (web)
+
+Repo `vercel.json` pins the modern Expo static export (do **not** use legacy `expo build:web`):
+
+| Setting | Value |
+|---------|--------|
+| Install Command | `npm ci` |
+| Build Command | `npx expo export --platform web` |
+| Output Directory | `dist` |
+| Framework Preset | Other / no framework |
+
+SPA fallback rewrite → `/index.html` is included. If the dashboard overrides these fields, match the table above (or clear overrides so `vercel.json` wins). Scripts `build:web` / `vercel-build` alias the same export for older templates.
+
 ## License / product note
 
 Personal / table game port. Rules wording and foul taxonomy belong in the rules spec, not in marketing copy.

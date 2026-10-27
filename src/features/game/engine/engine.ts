@@ -83,6 +83,7 @@ export class GameEngine {
       deck: [...frozen.deck],
       current: [...frozen.current],
       beaten: [...frozen.beaten],
+      huyovyeQueue: frozen.huyovyeQueue.map((q) => ({ ...q })),
       watchmanAskCounts: { ...frozen.watchmanAskCounts },
     };
     this.listeners.forEach((l) => l());
@@ -118,6 +119,7 @@ export class GameEngine {
       players,
       dealerId,
       watchmanId,
+      previousWatchmanId: null,
       activePlayerId: dealerId,
       trump: null,
       current: [],
@@ -127,6 +129,8 @@ export class GameEngine {
       tookLastDeckCardId: null,
       prepareHeld: null,
       roundJustEnded: false,
+      huyovyeQueue: [],
+      pendingWatchmanHandoff: false,
       watchmanAskCounts: {},
       lastFoul: null,
       message: null,
@@ -404,71 +408,50 @@ export class GameEngine {
   // ——— Huyovye ———
 
   private enterHuyovye(): void {
+    const queue = this.buildHuyovyeQueue();
     this.state = {
       ...this.state,
       phase: Phase.Huyovye,
       prepareHeld: null,
-      message: "Фаза хуёвых",
+      huyovyeQueue: queue,
+      message:
+        queue.length === 0
+          ? "Хуёвых нет — к основной"
+          : `Фаза хуёвых: раздайте плохие карты (${queue.length})`,
     };
     this.emit();
-    this.resolveHuyovyeDeals();
+    if (queue.length === 0) {
+      this.beginMainAfterHuyovye();
+      return;
+    }
+    // CPU givers auto-play their obligations; humans choose manually.
+    this.runCpuHuyovye();
   }
 
-  /**
-   * For each huyovye point on a player, every other active player who can
-   * (hand.length > 1) gives one card (AI: highest rank non-essential).
-   */
-  private resolveHuyovyeDeals(): void {
-    const players = this.state.players.map((p) => ({
-      ...p,
-      hand: [...p.hand],
-    }));
-
-    for (const receiver of [...players]) {
-      if (!receiver.active || receiver.huyovye <= 0) continue;
-      let remaining = receiver.huyovye;
-      while (remaining > 0) {
-        let given = false;
-        for (const giver of players) {
-          if (!giver.active || giver.id === receiver.id) continue;
-          if (giver.hand.length <= 1) continue;
-          const card = this.pickBadCard(giver);
-          if (!card) continue;
-          const idx = giver.hand.findIndex((c) => cardsEqual(c, card));
-          if (idx < 0) continue;
-          giver.hand.splice(idx, 1);
-          const recv = players.find((p) => p.id === receiver.id);
-          if (recv) recv.hand.push(cloneCard(card));
-          given = true;
+  private buildHuyovyeQueue(): { giverId: number; receiverId: number }[] {
+    const active = activePlayers(this.state.players);
+    const queue: { giverId: number; receiverId: number }[] = [];
+    for (const receiver of active) {
+      for (let n = 0; n < receiver.huyovye; n++) {
+        for (const giver of active) {
+          if (giver.id === receiver.id) continue;
+          queue.push({ giverId: giver.id, receiverId: receiver.id });
         }
-        if (!given) break;
-        remaining--;
       }
-      const recv = players.find((p) => p.id === receiver.id);
-      if (recv) recv.huyovye = 0;
     }
-
-    const leadFrom =
-      this.state.tookLastDeckCardId ?? this.state.dealerId;
-    const next = nextClockwiseId(players, leadFrom);
-
-    this.state = {
-      ...this.state,
-      players,
-      phase: Phase.Main,
-      activePlayerId: next,
-      current: [],
-      discardPendingFlip: false,
-      roundJustEnded: false,
-      message: "Основная игра",
-    };
-    this.emit();
+    return queue;
   }
 
   private pickBadCard(giver: EnginePlayer): EngineCard | null {
     if (giver.hand.length <= 1) return null;
     const sorted = [...giver.hand].sort((a, b) => b.rank - a.rank);
     return sorted[0] ?? null;
+  }
+
+  /** Remaining gifts owed to a receiver in the current huyovye queue. */
+  huyovyeOutstanding(receiverId: number): number {
+    return this.state.huyovyeQueue.filter((q) => q.receiverId === receiverId)
+      .length;
   }
 
   giveHuyovyeCard(
@@ -478,35 +461,91 @@ export class GameEngine {
   ): boolean {
     if (this.state.phase !== Phase.Huyovye) return false;
     const giver = findPlayer(this.state, giverId);
-    const receiver = findPlayer(this.state, receiverId);
     if (giver.hand.length <= 1) {
       this.awardFoul(giverId, Foul.GaveAwayLastPrepare);
       this.emit();
       return false;
     }
-    if (receiver.huyovye <= 0) return false;
+    const qi = this.state.huyovyeQueue.findIndex(
+      (q) => q.giverId === giverId && q.receiverId === receiverId,
+    );
+    if (qi < 0) return false;
     const idx = giver.hand.findIndex((c) => cardsEqual(c, card));
     if (idx < 0) return false;
 
+    const queue = this.state.huyovyeQueue.filter((_, i) => i !== qi);
     const players = this.state.players.map((p) => {
       if (p.id === giverId) {
-        return {
-          ...p,
-          hand: p.hand.filter((_, i) => i !== idx),
-        };
+        return { ...p, hand: p.hand.filter((_, i) => i !== idx) };
       }
       if (p.id === receiverId) {
-        return {
-          ...p,
-          hand: [...p.hand, cloneCard(card)],
-          huyovye: Math.max(0, p.huyovye - 1),
-        };
+        return { ...p, hand: [...p.hand, cloneCard(card)] };
       }
       return p;
     });
-    this.state = { ...this.state, players };
+    this.state = {
+      ...this.state,
+      players,
+      huyovyeQueue: queue,
+      message: `${giver.name} → ${findPlayer(this.state, receiverId).name}`,
+    };
     this.emit();
+    if (queue.length === 0) {
+      this.beginMainAfterHuyovye();
+    }
     return true;
+  }
+
+  /** CPU seats fulfill their pending huyovye gifts. */
+  runCpuHuyovye(): void {
+    if (this.state.phase !== Phase.Huyovye) return;
+    let guard = 200;
+    while (guard-- > 0) {
+      const next = this.state.huyovyeQueue.find((q) => {
+        const g = findPlayer(this.state, q.giverId);
+        return g.isCPU && g.hand.length > 1;
+      });
+      if (!next) break;
+      const giver = findPlayer(this.state, next.giverId);
+      const card = this.pickBadCard(giver);
+      if (!card) {
+        // Cannot give without last card — drop this obligation
+        this.state = {
+          ...this.state,
+          huyovyeQueue: this.state.huyovyeQueue.filter((q) => q !== next),
+        };
+        this.emit();
+        continue;
+      }
+      this.giveHuyovyeCard(next.giverId, next.receiverId, card);
+    }
+  }
+
+  /** Start main once the huyovye queue is empty (no-op if gifts remain). */
+  finishHuyovye(): boolean {
+    if (this.state.phase !== Phase.Huyovye) return false;
+    if (this.state.huyovyeQueue.length > 0) return false;
+    this.beginMainAfterHuyovye();
+    return true;
+  }
+
+  private beginMainAfterHuyovye(): void {
+    const players = this.state.players.map((p) => ({ ...p, huyovye: 0 }));
+    const leadFrom =
+      this.state.tookLastDeckCardId ?? this.state.dealerId;
+    const next = nextClockwiseId(players, leadFrom);
+    this.state = {
+      ...this.state,
+      players,
+      huyovyeQueue: [],
+      phase: Phase.Main,
+      activePlayerId: next,
+      current: [],
+      discardPendingFlip: false,
+      roundJustEnded: false,
+      message: "Основная игра",
+    };
+    this.emit();
   }
 
   // ——— Main ———
@@ -720,30 +759,19 @@ export class GameEngine {
       message: `${self.name}: С пидорами не играю!`,
     };
 
-    if (still.length <= 2) {
+    if (still.length === 2) {
       this.state = {
         ...this.state,
-        message:
-          still.length === 2
-            ? "Дуэль"
-            : this.state.message,
+        message: `Дуэль: ${still[0].name} vs ${still[1].name}`,
       };
     }
     if (still.length === 1) {
-      const loser = still[0];
-      this.state = {
-        ...this.state,
-        phase: Phase.Ended,
-        watchmanId: loser.id,
-        dealerId: loser.id,
-        message: `${loser.name} на вахте`,
-      };
+      this.applyWatchmanHandoff(still[0].id);
     }
     if (still.length === 0) {
       this.state = { ...this.state, phase: Phase.Ended };
     }
 
-    // Pass turn if active left
     if (
       this.state.phase === Phase.Main &&
       !findPlayer(this.state, this.state.activePlayerId).active
@@ -756,6 +784,55 @@ export class GameEngine {
         ),
       };
     }
+    this.emit();
+    return true;
+  }
+
+  /** Which protocol buttons apply for a seat after a discard cycle. */
+  protocolsFor(playerId: number): Array<"claim_stumps" | "exit"> {
+    if (this.state.phase !== Phase.Main) return [];
+    if (!this.state.roundJustEnded && this.state.current.length > 0) {
+      return [];
+    }
+    const self = findPlayer(this.state, playerId);
+    if (!self.active) return [];
+    if (self.hand.length === 0 && self.stumps.length > 0) {
+      return ["claim_stumps"];
+    }
+    if (self.hand.length === 0 && self.stumps.length === 0) {
+      return ["exit"];
+    }
+    return [];
+  }
+
+  private applyWatchmanHandoff(loserId: number): void {
+    const prev = this.state.watchmanId;
+    const loser = findPlayer(this.state, loserId);
+    const prevName =
+      prev != null
+        ? findPlayer(this.state, prev).name
+        : "Вася-пидор";
+    this.state = {
+      ...this.state,
+      phase: Phase.Ended,
+      previousWatchmanId: prev,
+      watchmanId: loserId,
+      dealerId: loserId,
+      pendingWatchmanHandoff: true,
+      message: `${prevName}: Вася-пидор вахту сдал! ${loser.name}, принимай вахту.`,
+    };
+  }
+
+  acceptWatchmanHandoff(): boolean {
+    if (!this.state.pendingWatchmanHandoff) return false;
+    const w = this.state.watchmanId;
+    const name =
+      w != null ? findPlayer(this.state, w).name : "вахтёр";
+    this.state = {
+      ...this.state,
+      pendingWatchmanHandoff: false,
+      message: `${name} на вахте. Спроси: «Кто на вахте?»`,
+    };
     this.emit();
     return true;
   }
@@ -792,15 +869,9 @@ export class GameEngine {
     return true;
   }
 
-  /** End duel: mark loser as watchman. */
+  /** End duel: mark loser as watchman and prompt handoff. */
   setWatchman(loserId: number): void {
-    this.state = {
-      ...this.state,
-      phase: Phase.Ended,
-      watchmanId: loserId,
-      dealerId: loserId,
-      message: "Вахту сдал",
-    };
+    this.applyWatchmanHandoff(loserId);
     this.emit();
   }
 
@@ -813,6 +884,10 @@ export class GameEngine {
 
     if (this.state.phase === Phase.Prepare) {
       this.cpuPrepare(id);
+      return;
+    }
+    if (this.state.phase === Phase.Huyovye) {
+      this.runCpuHuyovye();
       return;
     }
     if (this.state.phase === Phase.Main) {

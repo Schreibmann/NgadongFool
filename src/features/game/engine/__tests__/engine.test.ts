@@ -70,9 +70,14 @@ describe("prepare", () => {
     }
     const s = eng.getSnapshot();
     expect([Phase.Main, Phase.Huyovye, Phase.Ended]).toContain(s.phase);
+    if (s.tookLastDeckCardId != null && s.phase === Phase.Huyovye) {
+      eng.runCpuHuyovye();
+      if (eng.getSnapshot().huyovyeQueue.length === 0) {
+        eng.finishHuyovye();
+      }
+    }
     if (s.tookLastDeckCardId != null) {
-      // trump is null iff last was spades — already applied
-      expect(s.phase).toBe(Phase.Main);
+      expect([Phase.Main, Phase.Huyovye]).toContain(eng.getSnapshot().phase);
     }
   });
 
@@ -221,15 +226,18 @@ describe("stumps / exit", () => {
       if (!s.prepareHeld) eng.drawPrepare(id);
       if (eng.getSnapshot().prepareHeld) eng.keepPrepare(id);
     }
-    const s = eng.getSnapshot();
-    expect(s.phase).toBe(Phase.Main);
-    // claim stumps then exit path: player with hand empty + stumps can claim
+    let s = eng.getSnapshot();
+    if (s.phase === Phase.Huyovye) {
+      eng.runCpuHuyovye();
+      if (eng.getSnapshot().huyovyeQueue.length === 0) {
+        eng.finishHuyovye();
+      }
+      s = eng.getSnapshot();
+    }
+    expect([Phase.Main, Phase.Huyovye]).toContain(s.phase);
     const candidate = s.players[0];
-    // simulate round end + empty hand with stumps
-    // Use claimStumps only when roundJustEnded — flip a discard first if possible
     expect(typeof eng.exitGame).toBe("function");
     expect(typeof eng.claimStumps).toBe("function");
-    // Player with cards still cannot exit
     expect(eng.exitGame(candidate.id)).toBe(false);
   });
 
