@@ -1,4 +1,4 @@
-import React, { FC, useCallback } from "react";
+import { FC, useCallback, useEffect } from "react";
 import {
   View,
   ViewStyle,
@@ -15,18 +15,10 @@ import { Text } from "@shared-components/text/text";
 import { Button } from "@shared-components/button/button";
 import { Card } from "./components/card/card";
 import { Card as CardType } from "./components/card/card.props";
-import {
-  GameController,
-  Player,
-  PlaygroundState,
-  Stage,
-} from "./game-controller";
 import { DragProvider, Draggable, DropZone } from "./components/drag-drop";
-import {
-  CPU_IVAN,
-  CPU_SEBASTIAN,
-  PLAYER_FROM_NGADONG,
-} from "./players";
+import { Phase, EngineCard, EnginePlayer } from "./engine";
+import { useGameEngine } from "./use-game-engine";
+import { DEFAULT_SEATS, HUMAN_ID, PLAYER_AVATARS } from "./players";
 import { CardWidth, cardHeight } from "@shared-constants";
 import { color, spacing, typography } from "theme";
 
@@ -46,13 +38,8 @@ const MAIN_CONTAINER: ViewStyle = {
   backgroundColor: color.transparent,
   paddingHorizontal: spacing[2],
 };
-const PLAYER: ViewStyle = {
-  ...FLEX_CENTER,
-};
-const TURN_CONTAINER: ViewStyle = {
-  ...FULL,
-  ...FLEX_CENTER,
-};
+const PLAYER: ViewStyle = { ...FLEX_CENTER };
+const TURN_CONTAINER: ViewStyle = { ...FULL, ...FLEX_CENTER };
 const TEXT: TextStyle = {
   fontSize: 20,
   color: color.palette.lighterGrey,
@@ -64,9 +51,7 @@ const FOOTER_CONTENT: ViewStyle = {
   paddingVertical: spacing[2],
   paddingHorizontal: spacing[2],
 };
-const FLAT_LIST: ViewStyle = {
-  paddingHorizontal: spacing[1],
-};
+const FLAT_LIST: ViewStyle = { paddingHorizontal: spacing[1] };
 const PLAYER_IMAGE: ImageStyle = {
   borderRadius: 18,
   height: 89,
@@ -98,9 +83,7 @@ const MAIN_GAME_TURN_CONTAINER: ViewStyle = {
   width: "100%",
   height: "100%",
 };
-const BUTTON_WRAPPER: ViewStyle = {
-  backgroundColor: "transparent",
-};
+const BUTTON_WRAPPER: ViewStyle = { backgroundColor: "transparent" };
 const BUTTON_STYLE: ImageStyle = {
   display: "flex",
   alignItems: "center",
@@ -113,63 +96,127 @@ const BUTTON_TEXT: TextStyle = {
   letterSpacing: 2,
 };
 
-const players: Player[] = [CPU_IVAN, CPU_SEBASTIAN, PLAYER_FROM_NGADONG];
-
-const cardKeyExtractor = (card: CardType) => `${card.rank}-${card.suit}`;
-
 const CARD_ITEM_LENGTH = CardWidth + 6;
 
+function toUiCard(card: EngineCard, isStump = false): CardType {
+  return { rank: card.rank, suit: card.suit, isStump };
+}
+
+function cardKey(card: CardType): string {
+  return `${card.rank}-${card.suit}-${card.isStump ? "s" : "h"}`;
+}
+
+function phaseLabel(phase: Phase): string {
+  switch (phase) {
+    case Phase.Prepare:
+      return "Раздача";
+    case Phase.Huyovye:
+      return "Хуёвые";
+    case Phase.Main:
+      return "Игра";
+    case Phase.Ended:
+      return "Конец";
+    default:
+      return "Стол";
+  }
+}
+
 export const PlaygroundScreen: FC = () => {
-  const [state, setState] = React.useState<PlaygroundState>();
-  const ctrlRef = React.useRef<GameController | null>(null);
+  const { engine, state } = useGameEngine({
+    seats: DEFAULT_SEATS,
+    seed: 42,
+  });
 
-  const me = state?.players?.find(
-    (player) => player.id === PLAYER_FROM_NGADONG.id,
+  const me = state.players.find((p) => p.id === HUMAN_ID);
+  const opponents = state.players.filter((p) => p.id !== HUMAN_ID);
+  const left = opponents[0];
+  const right = opponents[1];
+  const isMyTurn = state.activePlayerId === HUMAN_ID;
+  const active = state.players.find((p) => p.id === state.activePlayerId);
+
+  useEffect(() => {
+    if (!active?.isCPU || !active.active) {
+      return undefined;
+    }
+    if (state.phase !== Phase.Prepare && state.phase !== Phase.Main) {
+      return undefined;
+    }
+    const t = setTimeout(() => engine.runCpuTurn(), 450);
+    return () => clearTimeout(t);
+  }, [
+    active?.id,
+    active?.isCPU,
+    active?.active,
+    state.phase,
+    state.prepareHeld,
+    state.current.length,
+    state.discardPendingFlip,
+    state.roundJustEnded,
+    engine,
+  ]);
+
+  useEffect(() => {
+    if (
+      isMyTurn &&
+      state.phase === Phase.Prepare &&
+      !state.prepareHeld &&
+      state.deck.length > 0
+    ) {
+      engine.drawPrepare(HUMAN_ID);
+    }
+    return undefined;
+  }, [
+    isMyTurn,
+    state.phase,
+    state.prepareHeld,
+    state.deck.length,
+    state.activePlayerId,
+    engine,
+  ]);
+
+  const onDropToPlayer = useCallback(
+    (target: EnginePlayer, card: CardType) => {
+      if (!isMyTurn) return;
+      if (state.phase === Phase.Prepare) {
+        engine.placePrepare(HUMAN_ID, target.id, {
+          rank: card.rank,
+          suit: card.suit,
+        });
+        return;
+      }
+    },
+    [engine, isMyTurn, state.phase],
   );
-  const isMyTurn = state?.activePlayer?.id === PLAYER_FROM_NGADONG.id;
 
-  const skip = () => ctrlRef.current?.setNextPlayer();
-  const take = () => ctrlRef.current?.mainGameTakeCard();
-  const showStumps = () => ctrlRef.current?.showStumps();
-
-  const init = useCallback(async () => {
-    const controller = new GameController(players, setState);
-    ctrlRef.current = controller;
-    await controller.init();
-  }, []);
-
-  React.useEffect(() => {
-    init();
-  }, [init]);
-
-  const activePlayerId = state?.activePlayer?.id;
-  const activePlayer = state?.activePlayer;
-  const stage = state?.stage;
-
-  React.useEffect(() => {
-    if (!activePlayer || isMyTurn || !ctrlRef.current || !stage) {
-      return;
-    }
-    if (stage === Stage.prepare) {
-      void ctrlRef.current.prepareTurnCPU(activePlayer.id);
-    }
-    if (stage === Stage.mainGame) {
-      void ctrlRef.current.mainGameCpuTurn();
-    }
-  }, [activePlayerId, activePlayer, stage, isMyTurn]);
-
-  const handData = React.useMemo(
-    () => (me ? [...me.cards, ...me.stumps] : []),
-    [me],
+  const onDropMain = useCallback(
+    (card: CardType) => {
+      if (!isMyTurn || state.phase !== Phase.Main) return;
+      engine.playMain(HUMAN_ID, { rank: card.rank, suit: card.suit });
+    },
+    [engine, isMyTurn, state.phase],
   );
+
+  const handData: CardType[] = me
+    ? [
+        ...me.hand.map((c) => toUiCard(c)),
+        ...me.stumps.map((c) => toUiCard(c, true)),
+      ]
+    : [];
 
   const renderHandItem = useCallback(
     ({ item }: ListRenderItemInfo<CardType>) => (
-      <Draggable data={item} disabled={!!item.isStump || !isMyTurn}>
+      <Draggable
+        data={item}
+        disabled={
+          !!item.isStump ||
+          !isMyTurn ||
+          (state.phase !== Phase.Prepare && state.phase !== Phase.Main)
+        }
+      >
         <Card {...item} opened={!item.isStump} />
       </Draggable>
     ),
-    [isMyTurn],
+    [isMyTurn, state.phase],
   );
 
   const getItemLayout = useCallback(
@@ -181,16 +228,12 @@ export const PlaygroundScreen: FC = () => {
     [],
   );
 
-  if (!me || !state) {
+  if (!me || !left || !right) {
     return null;
   }
 
-  const stageLabel =
-    state.stage === Stage.prepare
-      ? "Раздача"
-      : state.stage === Stage.stumps
-        ? "Сдаю пеньки"
-        : "Игра";
+  const trumpLabel =
+    state.trump === null ? "нет" : String(state.trump);
 
   return (
     <DragProvider>
@@ -206,75 +249,34 @@ export const PlaygroundScreen: FC = () => {
             backgroundColor={color.transparent}
           >
             <View testID="TopContainer" style={TOP_CONTAINER}>
+              <OpponentSlot
+                player={left}
+                phase={state.phase}
+                isMyTurn={isMyTurn}
+                avatar={PLAYER_AVATARS[left.id]}
+                onDrop={(card) => onDropToPlayer(left, card)}
+              />
               <View style={PLAYER}>
-                <Image
-                  source={state.players[0].avatar}
-                  contentFit="contain"
-                  style={PLAYER_IMAGE}
-                />
-                <Text style={TEXT} text={state.players[0].name} />
-                <DropZone
-                  disabled={!isMyTurn || state.players[0].cards.length <= 0}
-                  onDrop={(card: CardType) =>
-                    ctrlRef.current?.prepareTurnPlayer({
-                      target: state.players[0],
-                      card,
-                    })
-                  }
-                >
-                  {state.players[0].cards.length > 0 ? (
-                    <Card
-                      {...state.players[0].cards[0]}
-                      opened={state.stage === Stage.prepare}
-                    />
-                  ) : state.players[0].stumps.length > 0 ? (
-                    <Card {...state.players[0].stumps[0]} opened={false} />
-                  ) : (
-                    <Text style={TEXT} text="Нет карт" />
-                  )}
-                </DropZone>
-              </View>
-              <View style={PLAYER}>
-                <Text style={TEXT} text={stageLabel} />
+                <Text style={TEXT} text={phaseLabel(state.phase)} />
                 <Text
                   style={TEXT}
-                  text={`Ходит:\n ${state.activePlayer?.name || ""}`}
+                  text={`Ходит:\n ${active?.name || ""}`}
                 />
-                {state.stage === Stage.mainGame ? (
-                  <Text
-                    style={TEXT}
-                    text={`Козырь:\n ${state.trump || "нет"}`}
-                  />
+                {state.phase === Phase.Main ||
+                state.phase === Phase.Huyovye ? (
+                  <Text style={TEXT} text={`Козырь:\n ${trumpLabel}`} />
+                ) : null}
+                {state.message ? (
+                  <Text style={TEXT} text={state.message} />
                 ) : null}
               </View>
-              <View style={PLAYER}>
-                <Image
-                  source={state.players[1].avatar}
-                  contentFit="contain"
-                  style={PLAYER_IMAGE}
-                />
-                <Text style={TEXT} text={state.players[1].name} />
-                <DropZone
-                  disabled={!isMyTurn || state.players[1].cards.length <= 0}
-                  onDrop={(card: CardType) =>
-                    ctrlRef.current?.prepareTurnPlayer({
-                      target: state.players[1],
-                      card,
-                    })
-                  }
-                >
-                  {state.players[1].cards.length > 0 ? (
-                    <Card
-                      {...state.players[1].cards[0]}
-                      opened={state.stage === Stage.prepare}
-                    />
-                  ) : state.players[1].stumps.length > 0 ? (
-                    <Card {...state.players[1].stumps[0]} opened={false} />
-                  ) : (
-                    <Text style={TEXT} text="Нет карт" />
-                  )}
-                </DropZone>
-              </View>
+              <OpponentSlot
+                player={right}
+                phase={state.phase}
+                isMyTurn={isMyTurn}
+                avatar={PLAYER_AVATARS[right.id]}
+                onDrop={(card) => onDropToPlayer(right, card)}
+              />
             </View>
             <View testID="TurnContainer" style={TURN_CONTAINER}>
               <ImageBackground
@@ -282,69 +284,89 @@ export const PlaygroundScreen: FC = () => {
                 style={MAIN_GAME_TURN_BACKGROUND}
                 source={BENCH_BACKGROUND}
               >
-                {state.stage === Stage.prepare && state.deck[0] ? (
-                  <Draggable
-                    data={state.deck[0]}
-                    disabled={!isMyTurn}
-                  >
-                    <Card {...state.deck[0]} opened />
+                {state.phase === Phase.Prepare && state.prepareHeld ? (
+                  <Draggable data={toUiCard(state.prepareHeld)} disabled={!isMyTurn}>
+                    <Card {...toUiCard(state.prepareHeld)} opened />
                   </Draggable>
                 ) : null}
-                {state.stage === Stage.prepare ? (
+                {state.phase === Phase.Prepare ? (
                   <View testID="DeckContainer" style={DECK_CONTAINER}>
-                    {!!state.deck.length || !!state.beaten.length ? (
+                    {state.deck.length > 0 || state.beaten.length > 0 ? (
                       <Card
-                        {...(state.deck[0] || state.beaten[0])}
+                        {...toUiCard(
+                          state.deck[0] || state.beaten[0],
+                        )}
                         opened={false}
                         animation={false}
                       />
                     ) : null}
                   </View>
                 ) : null}
-                {state.stage === Stage.mainGame ? (
+                {state.phase === Phase.Main ? (
                   <DropZone
                     style={MAIN_GAME_TURN_CONTAINER}
-                    disabled={!isMyTurn}
-                    onDrop={(card: CardType) =>
-                      ctrlRef.current?.mainGamePlayerPassCard(card)
-                    }
+                    disabled={!isMyTurn || state.discardPendingFlip}
+                    onDrop={onDropMain}
                   >
                     {state.current.map((card) => (
-                      <Card key={cardKeyExtractor(card)} {...card} opened />
+                      <Card
+                        key={cardKey(toUiCard(card))}
+                        {...toUiCard(card)}
+                        opened
+                      />
                     ))}
                   </DropZone>
                 ) : null}
               </ImageBackground>
             </View>
           </Screen>
-          {state.activePlayer?.canContinueTurn && isMyTurn ? (
+
+          {state.phase === Phase.Prepare &&
+          isMyTurn &&
+          state.prepareHeld ? (
             <Button
-              testID="skip-move-button"
+              testID="keep-card-button"
               style={BUTTON_WRAPPER}
               textStyle={TEXT}
-              tx="playgroundScreen.skip"
-              onPress={skip}
+              text="ЗАБРАТЬ"
+              onPress={() => engine.keepPrepare(HUMAN_ID)}
             />
           ) : null}
-          {state.stage === Stage.mainGame &&
+
+          {state.phase === Phase.Main &&
           isMyTurn &&
-          !!state.current.length ? (
+          state.current.length > 0 &&
+          !state.discardPendingFlip ? (
             <Button
               testID="take-card-button"
               style={BUTTON_WRAPPER}
               textStyle={TEXT}
               tx="playgroundScreen.take"
-              onPress={take}
+              onPress={() => engine.takeBottom(HUMAN_ID)}
             />
           ) : null}
-          {state.stage === Stage.mainGame &&
+
+          {state.phase === Phase.Main &&
+          state.discardPendingFlip &&
+          state.lastPlayedById === HUMAN_ID ? (
+            <Button
+              testID="flip-discard-button"
+              style={BUTTON_WRAPPER}
+              textStyle={TEXT}
+              text="ОТБОЙ"
+              onPress={() => engine.flipDiscard(HUMAN_ID)}
+            />
+          ) : null}
+
+          {state.phase === Phase.Main &&
           isMyTurn &&
-          !state.activePlayer.cards.length &&
-          !!state.activePlayer.stumps.length ? (
+          state.roundJustEnded &&
+          me.hand.length === 0 &&
+          me.stumps.length > 0 ? (
             <Button
               testID="show-stumps-button"
               style={BUTTON_WRAPPER}
-              onPress={showStumps}
+              onPress={() => engine.claimStumps(HUMAN_ID)}
             >
               <ImageBackground
                 resizeMode="contain"
@@ -355,19 +377,32 @@ export const PlaygroundScreen: FC = () => {
               </ImageBackground>
             </Button>
           ) : null}
+
+          {state.phase === Phase.Main &&
+          state.roundJustEnded &&
+          me.hand.length === 0 &&
+          me.stumps.length === 0 &&
+          me.active ? (
+            <Button
+              testID="exit-game-button"
+              style={BUTTON_WRAPPER}
+              textStyle={TEXT}
+              text="С ПИДОРАМИ НЕ ИГРАЮ"
+              onPress={() => engine.exitGame(HUMAN_ID)}
+            />
+          ) : null}
+
           <SafeAreaView style={FOOTER}>
             <View style={FOOTER_CONTENT}>
               <DropZone
-                disabled={!isMyTurn || state.stage !== Stage.prepare}
-                onDrop={(card: CardType) => {
-                  ctrlRef.current?.prepareTurnPlayer({ target: me, card });
-                }}
+                disabled={!isMyTurn || state.phase !== Phase.Prepare}
+                onDrop={(card) => onDropToPlayer(me, card)}
               >
                 <FlatList
                   horizontal
                   contentContainerStyle={FLAT_LIST}
                   data={handData}
-                  keyExtractor={cardKeyExtractor}
+                  keyExtractor={cardKey}
                   renderItem={renderHandItem}
                   getItemLayout={getItemLayout}
                   windowSize={5}
@@ -384,3 +419,42 @@ export const PlaygroundScreen: FC = () => {
     </DragProvider>
   );
 };
+
+function OpponentSlot({
+  player,
+  phase,
+  isMyTurn,
+  avatar,
+  onDrop,
+}: {
+  player: EnginePlayer;
+  phase: Phase;
+  isMyTurn: boolean;
+  avatar: number;
+  onDrop: (card: CardType) => void;
+}) {
+  const top = player.hand[0];
+  const stump = player.stumps[0];
+  return (
+    <View style={PLAYER}>
+      <Image source={avatar} contentFit="contain" style={PLAYER_IMAGE} />
+      <Text style={TEXT} text={player.name} />
+      <Text
+        style={TEXT}
+        text={player.active ? `хуёвых: ${player.huyovye}` : "вышел"}
+      />
+      <DropZone
+        disabled={!isMyTurn || phase !== Phase.Prepare || !player.active}
+        onDrop={onDrop}
+      >
+        {top ? (
+          <Card {...toUiCard(top)} opened={phase === Phase.Prepare} />
+        ) : stump ? (
+          <Card {...toUiCard(stump, true)} opened={false} />
+        ) : (
+          <Text style={TEXT} text="Нет карт" />
+        )}
+      </DropZone>
+    </View>
+  );
+}
