@@ -96,3 +96,71 @@ export function trumpFromLastDeckCard(
 ): CardSuits | null {
   return card.suit === CardSuits.Spades ? null : card.suit;
 }
+
+/**
+ * Huyovye («хуёвая»): how eager we are to give this card away.
+ * Higher score = worse to hold into main = prefer dump.
+ *
+ * Prefer dumping non-trump off-suit junk (low rank). Keep trump,
+ * spades (only beaten by higher spades), and unbeatable aces.
+ * Ties break by suit name then rank for determinism.
+ */
+export function huyovyeDumpScore(
+  card: EngineCard,
+  trump: CardSuits | null,
+): number {
+  if (isUnbeatableMain(card, trump)) {
+    return -1000;
+  }
+
+  const isTrump = trump !== null && card.suit === trump;
+  const isSpade = card.suit === CardSuits.Spades;
+  // Low rank → higher dump preference.
+  let score = (CardRanks.ace + 1 - card.rank) * 10;
+
+  if (isTrump) {
+    score -= 100;
+  } else if (isSpade) {
+    score -= 30;
+  } else {
+    score += 20;
+  }
+
+  return score;
+}
+
+/** Pick the worst-to-keep non-last card; null if hand has ≤1 card. */
+export function pickWorstHuyovyeCard(
+  hand: EngineCard[],
+  trump: CardSuits | null,
+): EngineCard | null {
+  if (hand.length <= 1) {
+    return null;
+  }
+
+  let best: EngineCard = hand[0];
+  let bestScore = huyovyeDumpScore(best, trump);
+
+  for (let i = 1; i < hand.length; i++) {
+    const card = hand[i];
+    const score = huyovyeDumpScore(card, trump);
+    if (score > bestScore) {
+      best = card;
+      bestScore = score;
+      continue;
+    }
+    if (score < bestScore) {
+      continue;
+    }
+    // Deterministic tie-break: suit name ASC, then rank ASC.
+    if (
+      card.suit < best.suit ||
+      (card.suit === best.suit && card.rank < best.rank)
+    ) {
+      best = card;
+      bestScore = score;
+    }
+  }
+
+  return best;
+}

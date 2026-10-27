@@ -2,7 +2,9 @@ import { CardRanks, CardSuits } from "../../components/card/card.props";
 import {
   canBeat,
   canPlaceOnTop,
+  huyovyeDumpScore,
   isUnbeatableMain,
+  pickWorstHuyovyeCard,
   trumpFromLastDeckCard,
 } from "../rules";
 
@@ -133,3 +135,46 @@ describe("main beat rules", () => {
     ).toBe(false);
   });
 });
+
+describe("huyovye dump heuristic", () => {
+  const trump = CardSuits.Hearts;
+
+  it("prefers low off-suit junk over trump and unbeatable ace", () => {
+    const junk = { rank: CardRanks.six, suit: CardSuits.Clubs };
+    const trumpKing = { rank: CardRanks.king, suit: CardSuits.Hearts };
+    const trumpAce = { rank: CardRanks.ace, suit: CardSuits.Hearts };
+    expect(huyovyeDumpScore(junk, trump)).toBeGreaterThan(
+      huyovyeDumpScore(trumpKing, trump),
+    );
+    expect(huyovyeDumpScore(trumpKing, trump)).toBeGreaterThan(
+      huyovyeDumpScore(trumpAce, trump),
+    );
+  });
+
+  it("pickWorstHuyovyeCard returns null for last card", () => {
+    expect(
+      pickWorstHuyovyeCard(
+        [{ rank: CardRanks.six, suit: CardSuits.Clubs }],
+        trump,
+      ),
+    ).toBeNull();
+  });
+
+  it("pickWorstHuyovyeCard dumps lowest off-suit, deterministic on ties", () => {
+    const pick = pickWorstHuyovyeCard(
+      [
+        { rank: CardRanks.ace, suit: CardSuits.Spades },
+        { rank: CardRanks.six, suit: CardSuits.Diamonds },
+        { rank: CardRanks.six, suit: CardSuits.Clubs },
+        { rank: CardRanks.king, suit: CardSuits.Hearts },
+      ],
+      trump,
+    );
+    // Both sixes score equal; clubs < diamonds → clubs wins tie-break
+    expect(pick).toEqual({
+      rank: CardRanks.six,
+      suit: CardSuits.Clubs,
+    });
+  });
+});
+

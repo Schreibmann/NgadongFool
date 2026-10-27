@@ -22,6 +22,7 @@ import {
   canBeat,
   canPlaceOnTop,
   firstLegalPrepareTarget,
+  pickWorstHuyovyeCard,
   topOf,
   trumpFromLastDeckCard,
 } from "./rules";
@@ -49,6 +50,8 @@ export class GameEngine {
   private state: GameState;
   private listeners = new Set<Listener>();
   private rng: () => number;
+  /** Re-entrancy guard so giveHuyovyeCard → runCpuHuyovye cannot nest. */
+  private cpuHuyovyeRunning = false;
 
   constructor(options: StartOptions) {
     if (options.seats.length < 2) {
@@ -442,16 +445,19 @@ export class GameEngine {
     return queue;
   }
 
-  private pickBadCard(giver: EnginePlayer): EngineCard | null {
-    if (giver.hand.length <= 1) return null;
-    const sorted = [...giver.hand].sort((a, b) => b.rank - a.rank);
-    return sorted[0] ?? null;
-  }
-
   /** Remaining gifts owed to a receiver in the current huyovye queue. */
   huyovyeOutstanding(receiverId: number): number {
     return this.state.huyovyeQueue.filter((q) => q.receiverId === receiverId)
       .length;
+  }
+
+  /**
+   * Suggested хуёвая for a giver (worst-to-keep under main rules).
+   * Null when the last-card rule forbids giving.
+   */
+  suggestHuyovyeCard(giverId: number): EngineCard | null {
+    const giver = findPlayer(this.state, giverId);
+    return pickWorstHuyovyeCard(giver.hand, this.state.trump);
   }
 
   giveHuyovyeCard(
@@ -492,32 +498,59 @@ export class GameEngine {
     this.emit();
     if (queue.length === 0) {
       this.beginMainAfterHuyovye();
+      return true;
     }
+    // After a human gift, finish any remaining CPU obligations.
+    this.runCpuHuyovye();
     return true;
   }
 
-  /** CPU seats fulfill their pending huyovye gifts. */
+  /**
+   * CPU seats fulfill pending huyovye gifts with the worst-to-keep heuristic.
+   * Obligations a CPU cannot legally fill (only last card left) are dropped so
+   * the phase cannot deadlock; humans still choose manually.
+   */
   runCpuHuyovye(): void {
     if (this.state.phase !== Phase.Huyovye) return;
-    let guard = 200;
-    while (guard-- > 0) {
-      const next = this.state.huyovyeQueue.find((q) => {
-        const g = findPlayer(this.state, q.giverId);
-        return g.isCPU && g.hand.length > 1;
-      });
-      if (!next) break;
-      const giver = findPlayer(this.state, next.giverId);
-      const card = this.pickBadCard(giver);
-      if (!card) {
-        // Cannot give without last card — drop this obligation
-        this.state = {
-          ...this.state,
-          huyovyeQueue: this.state.huyovyeQueue.filter((q) => q !== next),
-        };
-        this.emit();
-        continue;
+    if (this.cpuHuyovyeRunning) return;
+    this.cpuHuyovyeRunning = true;
+    try {
+      let guard = 200;
+      while (guard-- > 0) {
+        const next = this.state.huyovyeQueue.find((q) => {
+          const g = findPlayer(this.state, q.giverId);
+          return g.isCPU;
+        });
+        if (!next) break;
+
+        const giver = findPlayer(this.state, next.giverId);
+        const card = pickWorstHuyovyeCard(giver.hand, this.state.trump);
+        if (!card) {
+          // Cannot give without last card — drop this queue entry only.
+          const dropAt = this.state.huyovyeQueue.indexOf(next);
+          const dropped =
+            dropAt < 0
+              ? this.state.huyovyeQueue
+              : this.state.huyovyeQueue.filter((_, i) => i !== dropAt);
+          this.state = {
+            ...this.state,
+            huyovyeQueue: dropped,
+            message: `${giver.name} не может отдать хуёвую (последняя)`,
+          };
+          this.emit();
+          continue;
+        }
+        this.giveHuyovyeCard(next.giverId, next.receiverId, card);
       }
-      this.giveHuyovyeCard(next.giverId, next.receiverId, card);
+
+      if (
+        this.state.phase === Phase.Huyovye &&
+        this.state.huyovyeQueue.length === 0
+      ) {
+        this.beginMainAfterHuyovye();
+      }
+    } finally {
+      this.cpuHuyovyeRunning = false;
     }
   }
 
@@ -527,6 +560,36 @@ export class GameEngine {
     if (this.state.huyovyeQueue.length > 0) return false;
     this.beginMainAfterHuyovye();
     return true;
+  }
+
+  /**
+   * Test seam: jump into huyovye with explicit hands/queue/trump.
+   * Production UI never calls this.
+   */
+  loadHuyovyeFixture(fixture: {
+    players: EnginePlayer[];
+    trump: GameState["trump"];
+    queue: GameState["huyovyeQueue"];
+    tookLastDeckCardId?: number | null;
+  }): void {
+    this.state = {
+      ...this.state,
+      phase: Phase.Huyovye,
+      prepareHeld: null,
+      deck: [],
+      players: fixture.players.map((p) => ({
+        ...p,
+        hand: p.hand.map(cloneCard),
+        stumps: p.stumps.map(cloneCard),
+      })),
+      trump: fixture.trump,
+      huyovyeQueue: fixture.queue.map((q) => ({ ...q })),
+      tookLastDeckCardId:
+        fixture.tookLastDeckCardId === undefined
+          ? this.state.tookLastDeckCardId
+          : fixture.tookLastDeckCardId,
+      message: "huyovye fixture",
+    };
   }
 
   private beginMainAfterHuyovye(): void {
@@ -878,16 +941,19 @@ export class GameEngine {
   // ——— CPU ———
 
   runCpuTurn(): void {
+    // Huyovye gifts are by seat obligation, not by activePlayerId — always
+    // drain CPU givers even when the prepare/main "active" seat is human.
+    if (this.state.phase === Phase.Huyovye) {
+      this.runCpuHuyovye();
+      return;
+    }
+
     const id = this.state.activePlayerId;
     const player = findPlayer(this.state, id);
     if (!player.isCPU || !player.active) return;
 
     if (this.state.phase === Phase.Prepare) {
       this.cpuPrepare(id);
-      return;
-    }
-    if (this.state.phase === Phase.Huyovye) {
-      this.runCpuHuyovye();
       return;
     }
     if (this.state.phase === Phase.Main) {
