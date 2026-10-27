@@ -49,4 +49,12 @@ describe("clockwise helpers", () => {
     );
     expect(first?.id).toBe(3);
   });
+
+  it("nextClockwiseId skips inactive seats after exit", () => {
+    const table = [p(1), p(2), p(3), p(4)];
+    table[1].active = false; // seat 2 exited
+    expect(nextClockwiseId(table, 1)).toBe(3);
+    expect(nextClockwiseId(table, 3)).toBe(4);
+    expect(nextClockwiseId(table, 4)).toBe(1);
+  });
 });

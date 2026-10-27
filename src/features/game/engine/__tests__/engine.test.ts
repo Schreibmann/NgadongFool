@@ -257,10 +257,14 @@ describe("fouls enum", () => {
     expect(Foul.NamedTrumpAloud).toBe("named_trump_aloud");
   });
 
-  it("naming trump aloud awards foul", () => {
+  it("naming trump aloud awards foul for active players", () => {
     const eng = new GameEngine({ seats: seats3, seed: 40 });
     eng.nameTrumpAloud(3);
     expect(eng.getSnapshot().lastFoul?.foul).toBe(Foul.NamedTrumpAloud);
+  });
+
+  it("exposes ReceivedLowestOnHighest foul", () => {
+    expect(Foul.ReceivedLowestOnHighest).toBe("received_lowest_on_highest");
   });
 });
 

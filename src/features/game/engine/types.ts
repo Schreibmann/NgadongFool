@@ -20,6 +20,8 @@ export enum Foul {
   DumpedNotFirstClockwise = "dumped_not_first_clockwise",
   GaveAwayLastPrepare = "gave_away_last_prepare",
   PlacedLastDeckCard = "placed_last_deck_card",
+  /** Six placed on another player's ace in prepare — foul to the ace owner. */
+  ReceivedLowestOnHighest = "received_lowest_on_highest",
   NamedTrumpAloud = "named_trump_aloud",
   FlippedOthersDiscard = "flipped_others_discard",
   PlayedOutOfTurn = "played_out_of_turn",

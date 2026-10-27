@@ -1,3 +1,4 @@
+import { CardRanks } from "../components/card/card.props";
 import {
   EngineCard,
   EnginePlayer,
@@ -26,6 +27,14 @@ import {
   topOf,
   trumpFromLastDeckCard,
 } from "./rules";
+
+/*
+ * Open owner interpretations — do not invent answers; leave until clarified:
+ * - takeBottom: only bottom card (current) vs whole pile?
+ * - «Круг» for stumps/exit: discard flip cycle vs full turn orbit?
+ * - Huyovye lead: next after tookLastDeckCard vs after last huyovye giver/receiver?
+ * - Mid-main huyovye counters: orphan counters OK vs convert to card penalties?
+ */
 
 export interface StartOptions {
   seats: SeatConfig[];
@@ -207,6 +216,12 @@ export class GameEngine {
   /** Cascade: repeatedly dump own top onto first-clockwise legal lower tops. */
   cascadeOwnTops(playerId: number): number {
     this.assertActive(playerId);
+    if (this.state.phase !== Phase.Prepare) {
+      return 0;
+    }
+    if (!this.requireTurn(playerId)) {
+      return 0;
+    }
     let moves = 0;
     let guard = 64;
     while (guard-- > 0) {
@@ -220,13 +235,8 @@ export class GameEngine {
         playerId,
         top,
       );
+      // Self-as-target is a no-op for cascade (own top cannot land on itself).
       if (!target || target.id === playerId) {
-        // placing on self doesn't reduce "cascade to others"; allow self only if others none
-        if (target && target.id === playerId && self.hand.length > 1) {
-          this.placePrepareCard(playerId, playerId, top, true);
-          moves++;
-          continue;
-        }
         break;
       }
       this.placePrepareCard(playerId, target.id, top, true);
@@ -239,10 +249,23 @@ export class GameEngine {
   /** Draw top of deck into prepareHeld (or take last card → trump + huyovye). */
   drawPrepare(playerId: number): boolean {
     if (this.state.phase !== Phase.Prepare) return false;
-    if (!this.requireTurn(playerId)) return false;
+    if (!this.requireTurn(playerId, Foul.DrewOutOfTurn)) return false;
 
     if (this.state.prepareHeld) {
+      // Saw a second card without placing the first — foul and pass turn.
+      const held = this.state.prepareHeld;
       this.awardFoul(playerId, Foul.DrewTwoAndSawSecond);
+      const players = this.state.players.map((p) =>
+        p.id === playerId
+          ? { ...p, hand: [cloneCard(held), ...p.hand] }
+          : p,
+      );
+      this.state = {
+        ...this.state,
+        players,
+        prepareHeld: null,
+        activePlayerId: nextClockwiseId(players, playerId),
+      };
       this.emit();
       return false;
     }
@@ -304,12 +327,9 @@ export class GameEngine {
     if (this.state.phase !== Phase.Prepare) return false;
     if (!this.requireTurn(playerId)) return false;
 
-    if (this.state.deck.length === 1 && this.state.prepareHeld === null) {
-      this.awardFoul(playerId, Foul.PlacedLastDeckCard);
-      this.takeLastDeckCard(playerId);
-      return false;
-    }
-
+    // Hand cascade is legal when the deck has one card left and nothing is held.
+    // That is NOT PlacedLastDeckCard — the last deck card is never placed on anyone
+    // (drawPrepare takes it via takeLastDeckCard).
     const held = card ?? this.state.prepareHeld;
     if (!held) {
       return false;
@@ -399,6 +419,12 @@ export class GameEngine {
     const to = players.find((p) => p.id === toId);
     if (!from || !to) return;
 
+    const targetTop = to.hand[0];
+    const sixOnAce =
+      card.rank === CardRanks.six &&
+      targetTop !== undefined &&
+      targetTop.rank === CardRanks.ace;
+
     if (fromHand) {
       const idx = from.hand.findIndex((c) => cardsEqual(c, card));
       if (idx < 0) return;
@@ -406,6 +432,11 @@ export class GameEngine {
     }
     to.hand.unshift(cloneCard(card));
     this.state = { ...this.state, players };
+
+    // Six→ace awards huyovaya to the ace owner (not when placing on own ace).
+    if (sixOnAce && fromId !== toId) {
+      this.awardFoul(toId, Foul.ReceivedLowestOnHighest);
+    }
   }
 
   // ——— Huyovye ———
@@ -466,16 +497,30 @@ export class GameEngine {
     card: EngineCard,
   ): boolean {
     if (this.state.phase !== Phase.Huyovye) return false;
-    const giver = findPlayer(this.state, giverId);
-    if (giver.hand.length <= 1) {
-      this.awardFoul(giverId, Foul.GaveAwayLastPrepare);
-      this.emit();
-      return false;
-    }
     const qi = this.state.huyovyeQueue.findIndex(
       (q) => q.giverId === giverId && q.receiverId === receiverId,
     );
     if (qi < 0) return false;
+
+    const giver = findPlayer(this.state, giverId);
+    // Last card in hand is never given — drop obligation for humans like CPU
+    // so the queue cannot stall permanently.
+    if (giver.hand.length <= 1) {
+      const queue = this.state.huyovyeQueue.filter((_, i) => i !== qi);
+      this.state = {
+        ...this.state,
+        huyovyeQueue: queue,
+        message: `${giver.name} не может отдать хуёвую (последняя)`,
+      };
+      this.emit();
+      if (queue.length === 0) {
+        this.beginMainAfterHuyovye();
+      } else {
+        this.runCpuHuyovye();
+      }
+      return true;
+    }
+
     const idx = giver.hand.findIndex((c) => cardsEqual(c, card));
     if (idx < 0) return false;
 
@@ -507,8 +552,8 @@ export class GameEngine {
 
   /**
    * CPU seats fulfill pending huyovye gifts with the worst-to-keep heuristic.
-   * Obligations a CPU cannot legally fill (only last card left) are dropped so
-   * the phase cannot deadlock; humans still choose manually.
+   * Obligations a giver cannot legally fill (only last card left) are dropped
+   * so the phase cannot deadlock (same rule for humans via giveHuyovyeCard).
    */
   runCpuHuyovye(): void {
     if (this.state.phase !== Phase.Huyovye) return;
@@ -593,6 +638,49 @@ export class GameEngine {
   }
 
   /**
+   * Test seam: overlay arbitrary state fields for unit tests.
+   * Production UI never calls this.
+   */
+  loadTestFixture(patch: Partial<GameState>): void {
+    const players =
+      patch.players !== undefined
+        ? patch.players.map((p) => ({
+            ...p,
+            hand: p.hand.map(cloneCard),
+            stumps: p.stumps.map(cloneCard),
+          }))
+        : this.state.players;
+    this.state = {
+      ...this.state,
+      ...patch,
+      players,
+      deck: patch.deck !== undefined ? patch.deck.map(cloneCard) : this.state.deck,
+      current:
+        patch.current !== undefined
+          ? patch.current.map(cloneCard)
+          : this.state.current,
+      beaten:
+        patch.beaten !== undefined
+          ? patch.beaten.map(cloneCard)
+          : this.state.beaten,
+      prepareHeld:
+        patch.prepareHeld === undefined
+          ? this.state.prepareHeld
+          : patch.prepareHeld === null
+            ? null
+            : cloneCard(patch.prepareHeld),
+      huyovyeQueue:
+        patch.huyovyeQueue !== undefined
+          ? patch.huyovyeQueue.map((q) => ({ ...q }))
+          : this.state.huyovyeQueue,
+      watchmanAskCounts:
+        patch.watchmanAskCounts !== undefined
+          ? { ...patch.watchmanAskCounts }
+          : this.state.watchmanAskCounts,
+    };
+  }
+
+  /**
    * Test seam: jump into main with explicit table/hands/trump.
    * Production UI never calls this.
    */
@@ -629,6 +717,8 @@ export class GameEngine {
   }
 
   private beginMainAfterHuyovye(): void {
+    // TODO(interpretation): lead = next after tookLastDeckCard (current)
+    // vs next after last huyovye giver/receiver.
     const players = this.state.players.map((p) => ({ ...p, huyovye: 0 }));
     const leadFrom =
       this.state.tookLastDeckCardId ?? this.state.dealerId;
@@ -651,7 +741,17 @@ export class GameEngine {
 
   playMain(playerId: number, card: EngineCard): boolean {
     if (this.state.phase !== Phase.Main) return false;
+    // Pile already at N awaiting flip — playing another card is ExtraCardPastN.
     if (this.state.discardPendingFlip) {
+      this.awardFoul(playerId, Foul.ExtraCardPastN);
+      this.state = {
+        ...this.state,
+        activePlayerId: nextClockwiseId(
+          this.state.players,
+          playerId,
+        ),
+      };
+      this.emit();
       return false;
     }
     if (this.state.activePlayerId !== playerId) {
@@ -741,7 +841,10 @@ export class GameEngine {
     return true;
   }
 
-  /** Take bottom of current pile. */
+  /**
+   * Take bottom card of current pile (`shift`).
+   * TODO(interpretation): owner may clarify whole-pile take vs bottom-only.
+   */
   takeBottom(playerId: number): boolean {
     if (this.state.phase !== Phase.Main) return false;
     if (!this.requireTurn(playerId)) return false;
@@ -783,12 +886,16 @@ export class GameEngine {
       return false;
     }
 
+    // Lead of next trick is next clockwise after the flipper (empty-hand
+    // flipper must not remain stuck as activePlayerId).
+    const nextLead = nextClockwiseId(this.state.players, playerId);
     this.state = {
       ...this.state,
       beaten: [...this.state.beaten, ...this.state.current],
       current: [],
       discardPendingFlip: false,
       roundJustEnded: true,
+      activePlayerId: nextLead,
       message: "Отбой",
     };
     this.afterRoundEnd();
@@ -796,13 +903,25 @@ export class GameEngine {
   }
 
   private afterRoundEnd(): void {
-    // empty-hand players may claim stumps or exit (must announce)
+    // flipDiscard advances activePlayerId, so empty-hand CPU flippers are no
+    // longer the active seat — settle their claim/exit here.
+    const ids = activePlayers(this.state.players).map((p) => p.id);
+    for (const id of ids) {
+      const p = findPlayer(this.state, id);
+      if (!p.isCPU) continue;
+      if (p.hand.length === 0 && p.stumps.length > 0) {
+        this.claimStumps(id);
+      } else if (p.hand.length === 0 && p.stumps.length === 0) {
+        this.exitGame(id);
+      }
+    }
     this.emit();
   }
 
   claimStumps(playerId: number): boolean {
     if (this.state.phase !== Phase.Main) return false;
-    if (!this.state.roundJustEnded && this.state.current.length > 0) {
+    // TODO(interpretation): confirm «круг» = discard flip (roundJustEnded) only.
+    if (!this.state.roundJustEnded) {
       return false;
     }
     const self = findPlayer(this.state, playerId);
@@ -818,11 +937,11 @@ export class GameEngine {
         stumpsRevealed: true,
       };
     });
+    // Keep roundJustEnded so other seats can still claim/exit before the next lead.
     this.state = {
       ...this.state,
       players,
       message: `${self.name}: Беру пни!`,
-      roundJustEnded: false,
     };
     this.emit();
     return true;
@@ -843,7 +962,8 @@ export class GameEngine {
     if (self.hand.length > 0 || self.stumps.length > 0) {
       return false;
     }
-    if (!this.state.roundJustEnded && this.state.current.length > 0) {
+    // TODO(interpretation): confirm «круг» = discard flip (roundJustEnded) only.
+    if (!this.state.roundJustEnded) {
       return false;
     }
 
@@ -851,10 +971,10 @@ export class GameEngine {
       p.id === playerId ? { ...p, active: false } : p,
     );
     const still = activePlayers(players);
+    // Keep roundJustEnded so remaining seats can still claim/exit before next lead.
     this.state = {
       ...this.state,
       players,
-      roundJustEnded: false,
       message: `${self.name}: С пидорами не играю!`,
     };
 
@@ -890,7 +1010,7 @@ export class GameEngine {
   /** Which protocol buttons apply for a seat after a discard cycle. */
   protocolsFor(playerId: number): Array<"claim_stumps" | "exit"> {
     if (this.state.phase !== Phase.Main) return [];
-    if (!this.state.roundJustEnded && this.state.current.length > 0) {
+    if (!this.state.roundJustEnded) {
       return [];
     }
     const self = findPlayer(this.state, playerId);
@@ -907,10 +1027,10 @@ export class GameEngine {
   private applyWatchmanHandoff(loserId: number): void {
     const prev = this.state.watchmanId;
     const loser = findPlayer(this.state, loserId);
-    const prevName =
+    const handoff =
       prev != null
-        ? findPlayer(this.state, prev).name
-        : "Вася-пидор";
+        ? `${findPlayer(this.state, prev).name}: Вася-пидор вахту сдал! ${loser.name}, принимай вахту.`
+        : `Вася-пидор вахту сдал! ${loser.name}, принимай вахту.`;
     this.state = {
       ...this.state,
       phase: Phase.Ended,
@@ -918,7 +1038,7 @@ export class GameEngine {
       watchmanId: loserId,
       dealerId: loserId,
       pendingWatchmanHandoff: true,
-      message: `${prevName}: Вася-пидор вахту сдал! ${loser.name}, принимай вахту.`,
+      message: handoff,
     };
   }
 
@@ -937,6 +1057,10 @@ export class GameEngine {
   }
 
   nameTrumpAloud(playerId: number): void {
+    // Exited / inactive players may name trump without foul.
+    if (!findPlayer(this.state, playerId).active) {
+      return;
+    }
     this.awardFoul(playerId, Foul.NamedTrumpAloud);
     if (this.state.phase === Phase.Main) {
       this.state = {
@@ -1116,11 +1240,19 @@ export class GameEngine {
 
   // ——— guards ———
 
-  private requireTurn(playerId: number): boolean {
+  /** Out-of-turn: foul + advance to next after fouler (prepare and main). */
+  private requireTurn(
+    playerId: number,
+    foul: Foul = Foul.PlayedOutOfTurn,
+  ): boolean {
     if (this.state.activePlayerId === playerId) {
       return true;
     }
-    this.awardFoul(playerId, Foul.PlayedOutOfTurn);
+    this.awardFoul(playerId, foul);
+    this.state = {
+      ...this.state,
+      activePlayerId: nextClockwiseId(this.state.players, playerId),
+    };
     this.emit();
     return false;
   }

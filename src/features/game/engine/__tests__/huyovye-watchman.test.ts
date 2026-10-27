@@ -1,5 +1,5 @@
 import { GameEngine } from "../engine";
-import { Foul, Phase, SeatConfig } from "../types";
+import { Phase, SeatConfig } from "../types";
 
 const seats4: SeatConfig[] = [
   { id: 1, name: "A", isCPU: true },
@@ -41,7 +41,7 @@ describe("manual huyovye", () => {
     }
   });
 
-  it("giveHuyovyeCard fouls when giving last hand card", () => {
+  it("giveHuyovyeCard drops obligation when giver has only last hand card", () => {
     const eng = new GameEngine({ seats: seats4, seed: 2, watchmanId: 1 });
     eng.nameTrumpAloud(1);
     drainPrepare(eng);
@@ -60,8 +60,13 @@ describe("manual huyovye", () => {
     const g2 = eng.getSnapshot().players.find((p) => p.id === 100)!;
     const q2 = eng.getSnapshot().huyovyeQueue.find((x) => x.giverId === 100);
     if (q2 && g2.hand.length === 1) {
-      expect(eng.giveHuyovyeCard(100, q2.receiverId, g2.hand[0])).toBe(false);
-      expect(eng.getSnapshot().lastFoul?.foul).toBe(Foul.GaveAwayLastPrepare);
+      const before = eng.getSnapshot().huyovyeQueue.length;
+      expect(eng.giveHuyovyeCard(100, q2.receiverId, g2.hand[0])).toBe(true);
+      expect(eng.getSnapshot().lastFoul).toBeNull();
+      expect(eng.getSnapshot().players.find((p) => p.id === 100)!.hand).toHaveLength(
+        1,
+      );
+      expect(eng.getSnapshot().huyovyeQueue.length).toBeLessThan(before);
     }
   });
 
