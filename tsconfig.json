@@ -1,77 +1,36 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "lib": [
-      "esnext"
-    ],
-    "allowJs": true,
-    "jsx": "react-native",
-    "noEmit": true,
-    "isolatedModules": false,
     "strict": true,
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    // ? Custom ones
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
     "noImplicitAny": true,
     "strictNullChecks": false,
-    "strictFunctionTypes": true,
     "strictPropertyInitialization": false,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "forceConsistentCasingInFileNames": true,
-    // ? Babel Plugin Module Resolver
+    "skipLibCheck": true,
     "baseUrl": "./src",
     "paths": {
-      "@shared-components/*": [
-        "./shared/components/*"
-      ],
-      "@shared-constants": [
-        "./shared/constants"
-      ],
-      "@font-size": [
-        "./shared/theme/font-size"
-      ],
-      "@api": [
-        "./services/api/index"
-      ],
-      "@fonts": [
-        "./shared/theme/fonts"
-      ],
-      "@colors": [
-        "./shared/theme/colors"
-      ],
-      "@theme/*": [
-        "./shared/theme/*"
-      ],
-      "@services/*": [
-        "./services/*"
-      ],
-      "@screens/*": [
-        "./screens/*"
-      ],
-      "@utils/*": [
-        "./utils/*"
-      ],
-      "@assets/*": [
-        "./assets/*"
-      ],
-      "@local-storage": [
-        "./services/local-storage"
-      ]
+      "@shared-components/*": ["./shared/components/*"],
+      "@shared-constants": ["./shared/constants"],
+      "@theme": ["./shared/theme"],
+      "@theme/*": ["./shared/theme/*"],
+      "@services/*": ["./services/*"],
+      "@features/*": ["./features/*"],
+      "@utils/*": ["./utils/*"],
+      "@assets/*": ["./assets/*"],
+      "theme": ["./shared/theme"],
+      "i18n": ["./i18n"]
     }
   },
-  "exclude": [
-    "node_modules",
-    "babel.config.js",
-    "metro.config.js",
-    "jest.config.js"
-  ]
+  "include": [
+    "App.tsx",
+    "index.js",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/types/**/*.d.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": ["node_modules", "babel.config.js", "metro.config.js"]
 }
