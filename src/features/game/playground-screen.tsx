@@ -28,7 +28,7 @@ import {
   PLAYER_AVATARS,
   buildSeats,
 } from "./players";
-import { CardWidth, cardHeight } from "@shared-constants";
+import { CardFanStride, CardWidth, cardHeight } from "@shared-constants";
 import { color, spacing, typography } from "theme";
 import { RootStackParamList } from "../../navigation/types";
 
@@ -125,7 +125,11 @@ const SELECTED_CARD: ViewStyle = {
   borderColor: color.palette.orange,
 };
 
-const CARD_ITEM_LENGTH = CardWidth + 6;
+/** 50% overlap: each next card covers half of the previous. */
+const CARD_FAN_PULL = -CardWidth * 0.5;
+const CARD_ITEM_LENGTH = CardFanStride;
+const FAN_CARD: ViewStyle = { marginLeft: CARD_FAN_PULL };
+const FAN_CARD_FIRST: ViewStyle = { marginLeft: 0 };
 
 function toUiCard(card: EngineCard, isStump = false): CardType {
   return { rank: card.rank, suit: card.suit, isStump };
@@ -190,18 +194,30 @@ export const PlaygroundScreen: FC = () => {
         }
         return undefined;
       }
-      const t = setTimeout(() => engine.runCpuHuyovye(), 450);
-      return () => clearTimeout(t);
+      // Interval so a no-op tick cannot permanently stall the phase.
+      const t = setInterval(() => engine.runCpuHuyovye(), 450);
+      return () => clearInterval(t);
     }
 
-    if (!active?.isCPU || !active.active) {
-      return undefined;
-    }
     if (state.phase !== Phase.Prepare && state.phase !== Phase.Main) {
       return undefined;
     }
-    const t = setTimeout(() => engine.runCpuTurn(), 450);
-    return () => clearTimeout(t);
+
+    // Main: if discard awaits a CPU flipper, keep driving even if active seat drifted.
+    const flipper =
+      state.phase === Phase.Main && state.discardPendingFlip
+        ? state.players.find((p) => p.id === state.lastPlayedById)
+        : undefined;
+    const cpuShouldAct =
+      (active?.isCPU === true && active.active) ||
+      (flipper?.isCPU === true && flipper.active === true);
+    if (!cpuShouldAct) {
+      return undefined;
+    }
+
+    // Interval (not one-shot): engine must advance; retries recover soft no-ops.
+    const t = setInterval(() => engine.runCpuTurn(), 450);
+    return () => clearInterval(t);
   }, [
     active?.id,
     active?.isCPU,
@@ -210,9 +226,12 @@ export const PlaygroundScreen: FC = () => {
     state.prepareHeld,
     state.current.length,
     state.discardPendingFlip,
+    state.lastPlayedById,
     state.roundJustEnded,
     state.huyovyeQueue,
     state.players,
+    state.message,
+    state.activePlayerId,
     engine,
   ]);
 
@@ -274,6 +293,10 @@ export const PlaygroundScreen: FC = () => {
 
   const renderHandItem = useCallback(
     ({ item, index }: ListRenderItemInfo<CardType>) => {
+      const fanStyle: ViewStyle = {
+        ...(index === 0 ? FAN_CARD_FIRST : FAN_CARD),
+        zIndex: index,
+      };
       if (state.phase === Phase.Huyovye && !item.isStump) {
         const selected =
           huyovyePick != null &&
@@ -283,7 +306,7 @@ export const PlaygroundScreen: FC = () => {
             onPress={() =>
               setHuyovyePick({ rank: item.rank, suit: item.suit })
             }
-            style={selected ? SELECTED_CARD : undefined}
+            style={[fanStyle, selected ? SELECTED_CARD : undefined]}
           >
             <Card {...item} opened />
           </Pressable>
@@ -297,6 +320,7 @@ export const PlaygroundScreen: FC = () => {
             !isMyTurn ||
             (state.phase !== Phase.Prepare && state.phase !== Phase.Main)
           }
+          style={fanStyle}
         >
           <Card key={cardKey(item, index)} {...item} opened={!item.isStump} />
         </Draggable>
@@ -403,11 +427,15 @@ export const PlaygroundScreen: FC = () => {
                     onDrop={onDropMain}
                   >
                     {state.current.map((card, i) => (
-                      <Card
+                      <View
                         key={cardKey(toUiCard(card), i)}
-                        {...toUiCard(card)}
-                        opened
-                      />
+                        style={[
+                          i === 0 ? FAN_CARD_FIRST : FAN_CARD,
+                          { zIndex: i },
+                        ]}
+                      >
+                        <Card {...toUiCard(card)} opened />
+                      </View>
                     ))}
                   </DropZone>
                 ) : null}

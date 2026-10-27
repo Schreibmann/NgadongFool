@@ -125,6 +125,34 @@ describe("main beat rules", () => {
     ).toBe(true);
   });
 
+  it("ace-beats-king-trump: A♥ beats K♥ when hearts are trump", () => {
+    expect(
+      canBeat(
+        { rank: CardRanks.king, suit: CardSuits.Hearts },
+        { rank: CardRanks.ace, suit: CardSuits.Hearts },
+        trump,
+      ),
+    ).toBe(true);
+  });
+
+  it("playing trump ace as beater is not blocked by unbeatable-ace check", () => {
+    // Regression: unbeatable applies to TARGET only, never the beater.
+    expect(
+      canBeat(
+        { rank: CardRanks.six, suit: CardSuits.Clubs },
+        { rank: CardRanks.ace, suit: CardSuits.Hearts },
+        trump,
+      ),
+    ).toBe(true);
+    expect(
+      canBeat(
+        { rank: CardRanks.jack, suit: CardSuits.Hearts },
+        { rank: CardRanks.ace, suit: CardSuits.Hearts },
+        trump,
+      ),
+    ).toBe(true);
+  });
+
   it("six does not beat ace in main", () => {
     expect(
       canBeat(

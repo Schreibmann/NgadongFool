@@ -55,11 +55,12 @@ export function isUnbeatableMain(
 }
 
 /**
- * Main beat rules:
+ * Main beat rules (target = top of pile; card = beater from hand):
  * - Spades beaten only by higher spades (not trump).
- * - Trump beaten only by higher trump.
+ * - Trump beaten only by higher trump (e.g. trump ace beats trump king).
  * - Else: same suit higher OR trump.
- * - Spade ace / trump ace unbeatable.
+ * - Spade ace / trump ace on the table are unbeatable (check TARGET only —
+ *   playing an unbeatable ace as the beater is always allowed when otherwise legal).
  * - Six does not beat ace.
  */
 export function canBeat(
@@ -67,6 +68,8 @@ export function canBeat(
   card: EngineCard,
   trump: CardSuits | null,
 ): boolean {
+  // Only the card being beaten can be "unbeatable". Never reject the beater
+  // because it itself is a trump/spade ace.
   if (isUnbeatableMain(target, trump)) {
     return false;
   }
