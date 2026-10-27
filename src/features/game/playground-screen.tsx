@@ -179,14 +179,25 @@ export const PlaygroundScreen: FC = () => {
   );
 
   useEffect(() => {
+    if (state.phase === Phase.Huyovye) {
+      const cpuPending = state.huyovyeQueue.some((q) => {
+        const p = state.players.find((x) => x.id === q.giverId);
+        return p?.isCPU === true;
+      });
+      if (!cpuPending) {
+        if (state.huyovyeQueue.length === 0) {
+          engine.finishHuyovye();
+        }
+        return undefined;
+      }
+      const t = setTimeout(() => engine.runCpuHuyovye(), 450);
+      return () => clearTimeout(t);
+    }
+
     if (!active?.isCPU || !active.active) {
       return undefined;
     }
-    if (
-      state.phase !== Phase.Prepare &&
-      state.phase !== Phase.Main &&
-      state.phase !== Phase.Huyovye
-    ) {
+    if (state.phase !== Phase.Prepare && state.phase !== Phase.Main) {
       return undefined;
     }
     const t = setTimeout(() => engine.runCpuTurn(), 450);
@@ -200,7 +211,8 @@ export const PlaygroundScreen: FC = () => {
     state.current.length,
     state.discardPendingFlip,
     state.roundJustEnded,
-    state.huyovyeQueue.length,
+    state.huyovyeQueue,
+    state.players,
     engine,
   ]);
 
