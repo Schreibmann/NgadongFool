@@ -8,10 +8,8 @@ module.exports = {
     "^@features/(.*)$": "<rootDir>/src/features/$1",
     "^@shared-constants$": "<rootDir>/src/shared/constants",
     "^@shared-components/(.*)$": "<rootDir>/src/shared/components/$1",
-    "^@utils/(.*)$": "<rootDir>/src/utils/$1",
+    "^@theme(/(.*))?$": "<rootDir>/src/shared/theme$2",
     "^@assets/(.*)$": "<rootDir>/src/assets/$1",
-    "^theme$": "<rootDir>/src/shared/theme",
-    "^i18n$": "<rootDir>/src/i18n",
   },
   transform: {
     "^.+\\.tsx?$": [

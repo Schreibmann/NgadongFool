@@ -1,5 +1,5 @@
 import { ViewStyle } from "react-native";
-import { color } from "theme";
+import { color } from "@theme";
 
 export const offsets = {
   none: 0,

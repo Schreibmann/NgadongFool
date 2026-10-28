@@ -1,4 +1,4 @@
-import { CardRanks, CardSuits } from "../../components/card/card.props";
+import { CardRanks, CardSuits } from "../cards";
 import { GameEngine } from "../engine";
 import { EnginePlayer, Phase, SeatConfig } from "../types";
 
@@ -222,5 +222,70 @@ describe("CPU main turn advances", () => {
       expect(progressed).toBe(true);
     }
     expect(seenActive.length).toBeGreaterThan(0);
+  });
+
+  it("CPU with empty hand takes bottom instead of spinning advanceMainTurn", () => {
+    const eng = new GameEngine({ seats: seats4, seed: 7 });
+    eng.loadMainFixture({
+      trump: CardSuits.Hearts,
+      activePlayerId: 1,
+      current: [
+        { rank: CardRanks.six, suit: CardSuits.Clubs },
+        { rank: CardRanks.king, suit: CardSuits.Clubs },
+      ],
+      players: seats4.map((s) =>
+        player(s, {
+          hand: s.id === 1 ? [] : [{ rank: CardRanks.nine, suit: CardSuits.Diamonds }],
+          stumps: [],
+          isCPU: true,
+        }),
+      ),
+    });
+
+    eng.runCpuTurn();
+    const after = eng.getSnapshot();
+    const cpu = after.players.find((p) => p.id === 1)!;
+    expect(cpu.hand).toHaveLength(1);
+    expect(cpu.hand[0]).toEqual({
+      rank: CardRanks.six,
+      suit: CardSuits.Clubs,
+    });
+    expect(after.current).toHaveLength(1);
+    expect(after.current[0]).toEqual({
+      rank: CardRanks.king,
+      suit: CardSuits.Clubs,
+    });
+  });
+
+  it("two empty-hand CPUs with a pile both take bottom within a few ticks (no spin)", () => {
+    const duelSeats: SeatConfig[] = [
+      { id: 1, name: "A", isCPU: true },
+      { id: 2, name: "B", isCPU: true },
+    ];
+    const eng = new GameEngine({ seats: duelSeats, seed: 8 });
+    eng.loadMainFixture({
+      trump: CardSuits.Hearts,
+      activePlayerId: 1,
+      current: [
+        { rank: CardRanks.six, suit: CardSuits.Clubs },
+        { rank: CardRanks.king, suit: CardSuits.Spades },
+      ],
+      players: [
+        player(duelSeats[0], { hand: [], stumps: [] }),
+        player(duelSeats[1], { hand: [], stumps: [] }),
+      ],
+    });
+
+    for (let i = 0; i < 4; i++) {
+      const snap = eng.getSnapshot();
+      if (snap.phase !== Phase.Main) break;
+      if (snap.current.length === 0) break;
+      eng.runCpuTurn();
+    }
+
+    const after = eng.getSnapshot();
+    const handTotal = after.players.reduce((n, p) => n + p.hand.length, 0);
+    expect(handTotal).toBeGreaterThan(0);
+    expect(after.current.length).toBeLessThan(2);
   });
 });

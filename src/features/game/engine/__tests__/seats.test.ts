@@ -5,7 +5,7 @@ import {
   nextClockwiseId,
 } from "../seats";
 import { canPlaceOnTop, topOf } from "../rules";
-import { CardRanks, CardSuits } from "../../components/card/card.props";
+import { CardRanks, CardSuits } from "../cards";
 
 function p(
   id: number,

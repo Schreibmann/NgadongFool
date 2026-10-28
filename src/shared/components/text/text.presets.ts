@@ -1,5 +1,5 @@
 import { TextStyle } from "react-native";
-import { color, typography } from "theme";
+import { color, typography } from "@theme";
 
 const BASE: TextStyle = {
   fontFamily: typography.ngadong,

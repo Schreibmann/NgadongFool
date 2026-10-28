@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { TranslateOptions } from "i18n-js";
 import { TextPresets } from "./text.presets";
-import { TxKeyPath } from "i18n";
+import { TxKeyPath } from "@i18n";
 
 export interface TextProps extends TextProperties {
   children?: React.ReactNode;

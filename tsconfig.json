@@ -9,37 +9,33 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "skipLibCheck": true,
-    "baseUrl": "./src",
+    "types": [
+      "jest"
+    ],
     "paths": {
       "@shared-components/*": [
-        "./shared/components/*"
+        "./src/shared/components/*"
       ],
       "@shared-constants": [
-        "./shared/constants"
+        "./src/shared/constants"
       ],
       "@theme": [
-        "./shared/theme"
+        "./src/shared/theme"
       ],
       "@theme/*": [
-        "./shared/theme/*"
+        "./src/shared/theme/*"
       ],
-      "@services/*": [
-        "./services/*"
+      "@i18n": [
+        "./src/i18n"
+      ],
+      "@navigation/*": [
+        "./src/navigation/*"
       ],
       "@features/*": [
-        "./features/*"
-      ],
-      "@utils/*": [
-        "./utils/*"
+        "./src/features/*"
       ],
       "@assets/*": [
-        "./assets/*"
-      ],
-      "theme": [
-        "./shared/theme"
-      ],
-      "i18n": [
-        "./i18n"
+        "./src/assets/*"
       ]
     }
   },

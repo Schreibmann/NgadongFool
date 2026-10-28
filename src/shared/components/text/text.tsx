@@ -1,4 +1,4 @@
-import { translate } from "i18n";
+import { translate } from "@i18n";
 import { Text as ReactNativeText } from "react-native";
 import { presets } from "./text.presets";
 import { TextProps } from "./text.props";

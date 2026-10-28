@@ -1,4 +1,4 @@
-import { CardRanks } from "../components/card/card.props";
+import { CardRanks } from "./cards";
 import {
   EngineCard,
   EnginePlayer,
@@ -9,11 +9,17 @@ import {
   SeatConfig,
 } from "./types";
 import {
+  cardKey,
   cardsEqual,
   createDeck36,
   createRng,
   shuffleDeck,
 } from "./deck";
+
+/** Chance a CPU intentionally fouls / misplays instead of the smart legal move. */
+const CPU_MISTAKE_RATE = 0.1;
+/** Identical Main fingerprints in a row before forcing takeBottom / flip. */
+const MAIN_LOOP_STREAK_LIMIT = 28;
 import {
   activePlayers,
   firstClockwiseWhere,
@@ -40,6 +46,8 @@ import {
  */
 
 export interface StartOptions {
+  /** UI-only: forces a fresh GameEngine when remounting with the same seats. */
+  sessionNonce?: number;
   seats: SeatConfig[];
   /** Previous watchman becomes dealer; omit to pick randomly. */
   watchmanId?: number | null;
@@ -64,6 +72,8 @@ export class GameEngine {
   private rng: () => number;
   /** Re-entrancy guard so giveHuyovyeCard → runCpuHuyovye cannot nest. */
   private cpuHuyovyeRunning = false;
+  private mainLoopFingerprint: string | null = null;
+  private mainLoopStreak = 0;
 
   constructor(options: StartOptions) {
     if (options.seats.length < 2) {
@@ -1227,6 +1237,47 @@ export class GameEngine {
     }
   }
 
+  private cpuShouldMistake(): boolean {
+    return this.rng() < CPU_MISTAKE_RATE;
+  }
+
+  /**
+   * Board-only fingerprint (no activePlayerId) so A↔B no-op turn spins still
+   * accumulate a streak and trigger a forced takeBottom.
+   */
+  private mainStateFingerprint(): string {
+    const hands = this.state.players
+      .map((p) => {
+        const keys = p.hand.map(cardKey).sort().join(",");
+        return `${p.id}:${p.active ? 1 : 0}:${keys}`;
+      })
+      .join("|");
+    const current = this.state.current.map(cardKey).join(",");
+    return [
+      this.state.discardPendingFlip ? 1 : 0,
+      this.state.lastPlayedById ?? "n",
+      current,
+      hands,
+    ].join(";");
+  }
+
+  /** Detect Main soft-locks (e.g. two CPUs forever trading the same cards). */
+  private noteMainFingerprintAndShouldBreak(): boolean {
+    const fp = this.mainStateFingerprint();
+    if (fp === this.mainLoopFingerprint) {
+      this.mainLoopStreak += 1;
+    } else {
+      this.mainLoopFingerprint = fp;
+      this.mainLoopStreak = 1;
+    }
+    return this.mainLoopStreak >= MAIN_LOOP_STREAK_LIMIT;
+  }
+
+  private resetMainLoopGuard(): void {
+    this.mainLoopFingerprint = null;
+    this.mainLoopStreak = 0;
+  }
+
   private cpuPrepare(playerId: number): void {
     this.cascadeOwnTops(playerId);
 
@@ -1244,6 +1295,11 @@ export class GameEngine {
       held,
     );
     if (target) {
+      // Rare mistake: keep while a mandatory dump exists (P4).
+      if (this.cpuShouldMistake()) {
+        this.keepPrepare(playerId);
+        return;
+      }
       this.placePrepare(playerId, target.id);
       // after place, draw again if still this player's prepare turn
       if (
@@ -1259,19 +1315,18 @@ export class GameEngine {
   }
 
   private cpuMain(playerId: number): void {
+    const breakLoop = this.noteMainFingerprintAndShouldBreak();
+
     if (this.state.discardPendingFlip) {
       const flipperId = this.state.lastPlayedById;
       if (flipperId == null) {
         this.advanceMainTurn(playerId);
         return;
       }
-      if (flipperId === playerId) {
-        this.flipDiscard(playerId);
-        return;
-      }
       const flipper = findPlayer(this.state, flipperId);
       if (flipper.isCPU && flipper.active) {
         this.flipDiscard(flipperId);
+        this.resetMainLoopGuard();
         return;
       }
       // Human must flip — park active seat on them so UI scheduling unblocks.
@@ -1288,18 +1343,20 @@ export class GameEngine {
 
     const player = findPlayer(this.state, playerId);
 
-    // Empty-hand protocol: claim stumps / exit whenever the pile is clear
-    // (not only when roundJustEnded). Mid-trick empty hand → skip seat.
+    // Empty hand + pile: cannot beat → take bottom (never spin advanceMainTurn).
     if (player.hand.length === 0) {
       if (this.state.current.length === 0) {
         if (player.stumps.length > 0) {
           this.claimStumps(playerId);
+          this.resetMainLoopGuard();
           return;
         }
         this.exitGame(playerId);
+        this.resetMainLoopGuard();
         return;
       }
-      this.advanceMainTurn(playerId);
+      this.takeBottom(playerId);
+      this.resetMainLoopGuard();
       return;
     }
 
@@ -1313,11 +1370,39 @@ export class GameEngine {
       return;
     }
 
+    // Anti-loop: force take even when a beater exists.
+    if (breakLoop) {
+      this.takeBottom(playerId);
+      this.resetMainLoopGuard();
+      return;
+    }
+
     const target = this.state.current[this.state.current.length - 1];
+    const trump = this.state.trump;
     const beaters = player.hand
-      .filter((c) => canBeat(target, c, this.state.trump))
-      .sort((a, b) => a.rank - b.rank);
+      .filter((c) => canBeat(target, c, trump))
+      .sort((a, b) => {
+        const aTrump = trump != null && a.suit === trump ? 1 : 0;
+        const bTrump = trump != null && b.suit === trump ? 1 : 0;
+        if (aTrump !== bTrump) return aTrump - bTrump;
+        return a.rank - b.rank;
+      });
+
     if (beaters[0]) {
+      // Rare mistake: take or play a non-beater instead of the smart beat.
+      if (this.cpuShouldMistake()) {
+        const nonBeaters = player.hand.filter(
+          (c) => !canBeat(target, c, trump),
+        );
+        if (nonBeaters.length > 0 && this.rng() < 0.5) {
+          const bad =
+            nonBeaters[Math.floor(this.rng() * nonBeaters.length)];
+          this.playMain(playerId, bad);
+          return;
+        }
+        this.takeBottom(playerId);
+        return;
+      }
       this.playMain(playerId, beaters[0]);
       return;
     }

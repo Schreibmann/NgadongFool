@@ -11,7 +11,7 @@ import Animated, {
 import { CardProps } from "./card.props";
 import { getCardImageSource } from "./card-images";
 import { CardWidth, cardHeight } from "@shared-constants";
-import { color, typography } from "theme";
+import { color, typography } from "@theme";
 
 const SHADOW: ViewStyle = {
   shadowColor: "black",

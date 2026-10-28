@@ -5,7 +5,6 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
 } from "react-native-reanimated";
 import { Card } from "../card/card.props";
 import { useDragContext } from "./drag-context";
@@ -22,21 +21,48 @@ interface PagePoint {
   pageY: number;
 }
 
+const ZERO_POINT: PagePoint = { pageX: 0, pageY: 0 };
+
+function readPagePoint(value: unknown): PagePoint {
+  if (!isRecord(value)) {
+    return ZERO_POINT;
+  }
+  if (typeof value.pageX === "number" && typeof value.pageY === "number") {
+    return { pageX: value.pageX, pageY: value.pageY };
+  }
+  if (isEvent(value) && isRecord(value.nativeEvent)) {
+    const native = value.nativeEvent;
+    if (typeof native.pageX === "number" && typeof native.pageY === "number") {
+      return { pageX: native.pageX, pageY: native.pageY };
+    }
+  }
+  return ZERO_POINT;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function isEventTarget(value: unknown): value is EventTarget {
+  return isRecord(value) && typeof value.addEventListener === "function";
+}
+
+function isEvent(node: unknown): node is { nativeEvent: unknown } {
+  return isRecord(node) && "nativeEvent" in node;
+}
+
 function readPointerId(event: unknown): number | null {
-  if (typeof event !== "object" || event === null) {
+  if (!isRecord(event)) {
     return null;
   }
-  if ("pointerId" in event && typeof event.pointerId === "number") {
+  if (typeof event.pointerId === "number") {
     return event.pointerId;
   }
-  if ("nativeEvent" in event) {
+  if (isEvent(event)) {
     const native = event.nativeEvent;
-    if (
-      typeof native === "object" &&
-      native !== null &&
-      "pointerId" in native &&
-      typeof native.pointerId === "number"
-    ) {
+    if (isRecord(native) && typeof native.pointerId === "number") {
       return native.pointerId;
     }
   }
@@ -44,23 +70,18 @@ function readPointerId(event: unknown): number | null {
 }
 
 function readDomTarget(event: unknown): EventTarget | null {
-  if (typeof event !== "object" || event === null) {
+  if (!isRecord(event)) {
     return null;
   }
-  if ("currentTarget" in event && event.currentTarget != null) {
+  if (isEventTarget(event.currentTarget)) {
     return event.currentTarget;
   }
-  if ("target" in event && event.target != null) {
+  if (isEventTarget(event.target)) {
     return event.target;
   }
-  if ("nativeEvent" in event) {
+  if (isEvent(event)) {
     const native = event.nativeEvent;
-    if (
-      typeof native === "object" &&
-      native !== null &&
-      "target" in native &&
-      native.target != null
-    ) {
+    if (isRecord(native) && isEventTarget(native.target)) {
       return native.target;
     }
   }
@@ -68,17 +89,14 @@ function readDomTarget(event: unknown): EventTarget | null {
 }
 
 function canCapturePointer(
-  target: EventTarget | null,
+  target: unknown,
 ): target is EventTarget & {
   setPointerCapture: (id: number) => void;
   releasePointerCapture: (id: number) => void;
 } {
   return (
-    typeof target === "object" &&
-    target !== null &&
-    "setPointerCapture" in target &&
+    isRecord(target) &&
     typeof target.setPointerCapture === "function" &&
-    "releasePointerCapture" in target &&
     typeof target.releasePointerCapture === "function"
   );
 }
@@ -89,6 +107,7 @@ function isDomElement(
   style: CSSStyleDeclaration;
   addEventListener: EventTarget["addEventListener"];
   removeEventListener: EventTarget["removeEventListener"];
+  getBoundingClientRect: () => DOMRect;
 } {
   return (
     typeof node === "object" &&
@@ -97,8 +116,28 @@ function isDomElement(
     typeof node.addEventListener === "function" &&
     "removeEventListener" in node &&
     typeof node.removeEventListener === "function" &&
-    "style" in node
+    "style" in node &&
+    "getBoundingClientRect" in node &&
+    typeof node.getBoundingClientRect === "function"
   );
+}
+
+type MeasureInWindowFn = (
+  callback: (x: number, y: number, width: number, height: number) => void,
+) => void;
+
+function readMeasureInWindow(node: unknown): MeasureInWindowFn | null {
+  if (typeof node !== "object" || node === null) {
+    return null;
+  }
+  if (!("measureInWindow" in node)) {
+    return null;
+  }
+  const candidate = node.measureInWindow;
+  if (typeof candidate !== "function") {
+    return null;
+  }
+  return candidate.bind(node);
 }
 
 export function Draggable({
@@ -107,16 +146,19 @@ export function Draggable({
   children,
   style,
 }: DraggableProps) {
-  const { findDropZoneAt } = useDragContext();
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const elev = useSharedValue(0);
+  const {
+    findDropZoneAt,
+    beginOverlayDrag,
+    moveOverlayDrag,
+    endOverlayDrag,
+  } = useDragContext();
+  const hidden = useSharedValue(0);
   const dataRef = React.useRef(data);
   dataRef.current = data;
 
   const dragOriginRef = React.useRef<{ x: number; y: number } | null>(null);
   const webDraggingRef = React.useRef(false);
-  const hostRef = React.useRef<EventTarget | null>(null);
+  const hostRef = React.useRef<unknown>(null);
   const dragStartCleanupRef = React.useRef<(() => void) | null>(null);
   const docDragGuardCleanupRef = React.useRef<(() => void) | null>(null);
   const capturedPointerIdRef = React.useRef<number | null>(null);
@@ -124,6 +166,35 @@ export function Draggable({
   const clearDocDragGuard = React.useCallback(() => {
     docDragGuardCleanupRef.current?.();
     docDragGuardCleanupRef.current = null;
+  }, []);
+
+  const measureHost = React.useCallback((): Promise<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null> => {
+    return new Promise((resolve) => {
+      const node = hostRef.current;
+      if (isDomElement(node)) {
+        const rect = node.getBoundingClientRect();
+        resolve({
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+        });
+        return;
+      }
+      const measureInWindow = readMeasureInWindow(node);
+      if (!measureInWindow) {
+        resolve(null);
+        return;
+      }
+      measureInWindow((x, y, width, height) => {
+        resolve({ x, y, width, height });
+      });
+    });
   }, []);
 
   const reset = React.useCallback(() => {
@@ -138,12 +209,27 @@ export function Draggable({
     }
     capturedPointerIdRef.current = null;
     clearDocDragGuard();
-    translateX.value = withSpring(0);
-    translateY.value = withSpring(0);
-    elev.value = 0;
+    endOverlayDrag();
+    hidden.value = 0;
     dragOriginRef.current = null;
     webDraggingRef.current = false;
-  }, [clearDocDragGuard, translateX, translateY, elev]);
+  }, [clearDocDragGuard, endOverlayDrag, hidden]);
+
+  const startOverlay = React.useCallback(async () => {
+    const layout = await measureHost();
+    if (layout == null) {
+      return false;
+    }
+    beginOverlayDrag({
+      data: dataRef.current,
+      originX: layout.x,
+      originY: layout.y,
+      width: layout.width,
+      height: layout.height,
+    });
+    hidden.value = 1;
+    return true;
+  }, [beginOverlayDrag, hidden, measureHost]);
 
   const handleDrop = React.useCallback(
     async (pageX: number, pageY: number) => {
@@ -156,21 +242,31 @@ export function Draggable({
     [findDropZoneAt, reset],
   );
 
+  const onNativeBegin = React.useCallback(() => {
+    void startOverlay();
+  }, [startOverlay]);
+
+  const onNativeUpdate = React.useCallback(
+    (dx: number, dy: number) => {
+      moveOverlayDrag(dx, dy);
+    },
+    [moveOverlayDrag],
+  );
+
   const gesture = React.useMemo(
     () =>
       Gesture.Pan()
         .enabled(!disabled && Platform.OS !== "web")
         .onBegin(() => {
-          elev.value = 100;
+          runOnJS(onNativeBegin)();
         })
         .onUpdate((event) => {
-          translateX.value = event.translationX;
-          translateY.value = event.translationY;
+          runOnJS(onNativeUpdate)(event.translationX, event.translationY);
         })
         .onEnd((event) => {
           runOnJS(handleDrop)(event.absoluteX, event.absoluteY);
         }),
-    [disabled, handleDrop, translateX, translateY, elev],
+    [disabled, handleDrop, onNativeBegin, onNativeUpdate],
   );
 
   React.useEffect(
@@ -185,13 +281,12 @@ export function Draggable({
   const bindHostNode = React.useCallback((node: unknown) => {
     dragStartCleanupRef.current?.();
     dragStartCleanupRef.current = null;
+    hostRef.current = node;
 
     if (!isDomElement(node)) {
-      hostRef.current = null;
       return;
     }
 
-    hostRef.current = node;
     node.style.userSelect = "none";
     node.style.setProperty("-webkit-user-drag", "none");
     node.style.cursor = "grab";
@@ -206,11 +301,11 @@ export function Draggable({
   }, []);
 
   const onWebPointerDown = React.useCallback(
-    (event: PagePoint) => {
+    (event: unknown) => {
+      const point = readPagePoint(event);
       if (disabled) return;
       webDraggingRef.current = true;
-      dragOriginRef.current = { x: event.pageX, y: event.pageY };
-      elev.value = 100;
+      dragOriginRef.current = { x: point.pageX, y: point.pageY };
 
       const pointerId = readPointerId(event);
       const target = readDomTarget(event);
@@ -226,7 +321,6 @@ export function Draggable({
         }
       }
 
-      // Document capture: img native drag cancels pointer before host handlers.
       clearDocDragGuard();
       const onDocDragStart = (dragEvent: Event) => {
         dragEvent.preventDefault();
@@ -235,23 +329,29 @@ export function Draggable({
       docDragGuardCleanupRef.current = () => {
         document.removeEventListener("dragstart", onDocDragStart, true);
       };
+
+      void startOverlay();
     },
-    [clearDocDragGuard, disabled, elev],
+    [clearDocDragGuard, disabled, startOverlay],
   );
 
   const onWebPointerMove = React.useCallback(
-    (event: PagePoint) => {
+    (event: unknown) => {
       if (!webDraggingRef.current || !dragOriginRef.current) return;
-      translateX.value = event.pageX - dragOriginRef.current.x;
-      translateY.value = event.pageY - dragOriginRef.current.y;
+      const point = readPagePoint(event);
+      moveOverlayDrag(
+        point.pageX - dragOriginRef.current.x,
+        point.pageY - dragOriginRef.current.y,
+      );
     },
-    [translateX, translateY],
+    [moveOverlayDrag],
   );
 
   const onWebPointerUp = React.useCallback(
-    (event: PagePoint) => {
+    (event: unknown) => {
       if (!webDraggingRef.current) return;
-      void handleDrop(event.pageX, event.pageY);
+      const point = readPagePoint(event);
+      void handleDrop(point.pageX, point.pageY);
     },
     [handleDrop],
   );
@@ -261,28 +361,32 @@ export function Draggable({
   }, [reset]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    zIndex: elev.value,
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-    ],
+    opacity: hidden.value === 1 ? 0 : 1,
   }));
 
-  const animatedView = React.createElement(
-    Animated.View,
-    {
-      ref: Platform.OS === "web" ? bindHostNode : undefined,
-      style: [styles.wrap, style, animatedStyle, styles.webGrab],
-      ...(Platform.OS === "web"
+  // Avoid type assertion on releasePointerCapture — fix reset helper properly.
+  const animatedView = (
+    <Animated.View
+      ref={
+        Platform.OS === "web"
+          ? bindHostNode
+          : (node: unknown) => {
+              hostRef.current = node;
+            }
+      }
+      collapsable={false}
+      style={[styles.wrap, style, animatedStyle, styles.webGrab]}
+      {...(Platform.OS === "web"
         ? {
             onPointerDown: onWebPointerDown,
             onPointerMove: onWebPointerMove,
             onPointerUp: onWebPointerUp,
             onPointerCancel: onWebPointerCancel,
           }
-        : {}),
-    },
-    children,
+        : {})}
+    >
+      {children}
+    </Animated.View>
   );
 
   if (Platform.OS === "web") {
@@ -296,5 +400,7 @@ const styles = StyleSheet.create({
   wrap: {
     alignSelf: "flex-start",
   },
-  webGrab: Platform.OS === "web" ? { userSelect: "none" } : {},
+  webGrab: Platform.OS === "web"
+    ? ({ userSelect: "none" } as unknown as ViewStyle)
+    : {},
 });

@@ -1,21 +1,11 @@
-export enum CardRanks {
-  six = 6,
-  seven = 7,
-  eight = 8,
-  nine = 9,
-  ten = 10,
-  jack = 11,
-  queen = 12,
-  king = 13,
-  ace = 14,
-}
+/**
+ * UI-facing card props. The canonical `CardRanks` / `CardSuits` enums live in
+ * the engine domain (`features/game/engine/cards`) and are re-exported here so
+ * UI code keeps one comfortable import surface.
+ */
+export { CardRanks, CardSuits } from "../../engine/cards";
 
-export enum CardSuits {
-  Diamonds = "diamonds",
-  Hearts = "hearts",
-  Clubs = "clubs",
-  Spades = "spades",
-}
+import { CardRanks, CardSuits } from "../../engine/cards";
 
 export interface Card {
   rank: CardRanks;

@@ -1,4 +1,6 @@
-import { Card, CardRanks, CardSuits } from "@features/game/components/card/card.props";
+/** Shared size/layout constants for cards and screens. Card enums live in the
+ * engine domain (`@features/game/engine/cards`); this module stays UI-only and
+ * does not depend on feature code. */
 
 export const CardWidth = 96;
 export const cardHeight = 150;
@@ -6,29 +8,6 @@ export const cardHeight = 150;
 export const CardFanOverlap = 0.5;
 /** FlatList / fan stride so neighbors overlap by CardFanOverlap. */
 export const CardFanStride = CardWidth * (1 - CardFanOverlap);
-
-const ranks: CardRanks[] = [
-  CardRanks.six,
-  CardRanks.seven,
-  CardRanks.eight,
-  CardRanks.nine,
-  CardRanks.ten,
-  CardRanks.jack,
-  CardRanks.queen,
-  CardRanks.king,
-  CardRanks.ace,
-];
-
-function suitCards(suit: CardSuits): Card[] {
-  return ranks.map((rank) => ({ rank, suit }));
-}
-
-export const CLUBS = suitCards(CardSuits.Clubs);
-export const DIAMONDS = suitCards(CardSuits.Diamonds);
-export const HEARTS = suitCards(CardSuits.Hearts);
-export const SPADES = suitCards(CardSuits.Spades);
-
-export const CardDeck36 = [...SPADES, ...CLUBS, ...DIAMONDS, ...HEARTS];
 
 export const SCREENS: { HOME: "Home"; PLAYGROUND: "Playground" } = {
   HOME: "Home",

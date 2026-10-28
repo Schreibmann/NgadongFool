@@ -34,8 +34,8 @@ import {
   buildSeats,
 } from "./players";
 import { CardFanStride, CardWidth, cardHeight } from "@shared-constants";
-import { color, spacing, typography } from "theme";
-import { RootStackParamList } from "../../navigation/types";
+import { color, spacing, typography } from "@theme";
+import { RootStackParamList } from "@navigation/types";
 
 const BENCH_BACKGROUND = require("@assets/images/bench.png");
 const PLAYGROUND_BACKGROUND = require("@assets/images/playground.png");
@@ -181,11 +181,12 @@ export const PlaygroundScreen: FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, "Playground">>();
   const playerCount = route.params?.playerCount ?? DEFAULT_PLAYER_COUNT;
   const seats = useMemo(() => buildSeats(playerCount), [playerCount]);
+  const sessionNonce = useMemo(() => Date.now(), []);
   const { width } = useWindowDimensions();
 
   const { engine, state } = useGameEngine({
     seats,
-    seed: 42 + playerCount,
+    sessionNonce,
   });
 
   const me = state.players.find((p) => p.id === HUMAN_ID);
@@ -682,7 +683,7 @@ export const PlaygroundScreen: FC = () => {
                   windowSize={5}
                   initialNumToRender={8}
                   maxToRenderPerBatch={8}
-                  removeClippedSubviews
+                  removeClippedSubviews={false}
                   style={{ minHeight: cardHeight + 8 }}
                 />
               </DropZone>

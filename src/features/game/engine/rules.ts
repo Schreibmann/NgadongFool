@@ -1,4 +1,4 @@
-import { CardRanks, CardSuits } from "../components/card/card.props";
+import { CardRanks, CardSuits } from "./cards";
 import { EngineCard, EnginePlayer } from "./types";
 import { firstClockwiseWhere } from "./seats";
 

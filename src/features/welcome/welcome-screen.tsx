@@ -11,12 +11,12 @@ import {
 import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { color, spacing, typography } from "theme";
+import { color, spacing, typography } from "@theme";
 import { Screen } from "@shared-components/screen/screen";
 import { Button } from "@shared-components/button/button";
 import { Text } from "@shared-components/text/text";
 import { SCREENS } from "@shared-constants";
-import { RootStackParamList } from "../../navigation/types";
+import { RootStackParamList } from "@navigation/types";
 import {
   DEFAULT_PLAYER_COUNT,
   MAX_PLAYERS,
