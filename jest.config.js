@@ -17,7 +17,7 @@ module.exports = {
       {
         tsconfig: {
           strict: true,
-          strictNullChecks: false,
+          strictNullChecks: true,
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
           module: "commonjs",

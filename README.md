@@ -31,11 +31,68 @@ npm run web        # Web only
 
 Node **20+** required (`engines` in `package.json`).
 
-## Project layout
+## Project structure
 
-- `src/features/welcome` — title / play CTA
-- `src/features/game` — playground UI, drag-drop, seats, **rules engine**
-- `src/shared` — theme + Button / Text / Screen
+Feature-sliced layout. Dependency direction: the rules engine and `shared`
+do not import from UI code; UI composes both.
+
+```text
+src/
+├── features/
+│   ├── welcome/                     # Экран приветствия: выбор 4–6 игроков, CTA «Играть»
+│   │   └── welcome-screen.tsx
+│   └── game/
+│       ├── engine/                  # Чистый TS-движок правил (без React)
+│       │   ├── cards.ts            # Домен: CardRanks / CardSuits (единственный источник)
+│       │   ├── types.ts            # Phase, Foul, GameState, EnginePlayer, StartOptions
+│       │   ├── deck.ts             # Колода 36, Mulberry32 RNG, shuffle
+│       │   ├── seats.ts            # Круговая механика мест (по часовой)
+│       │   ├── rules.ts            # Чистые правила: canBeat, canPlaceOnTop, 6→ace
+│       │   ├── engine.ts           # GameEngine — фасад/арбитр фаз Deal→Prepare→Huyovye→Main→Ended
+│       │   ├── phases/
+│       │   │   └── dealing.ts      # buildInitialGameState + dealStage (чистые функции)
+│       │   ├── cpu/
+│       │   │   ├── director.ts     # CpuDirector: CPU ходит только через легальный API хоста
+│       │   │   ├── ai.ts           # Эвристики: pickLead, pickBeater, mistake rate
+│       │   │   └── loop-guard.ts   # Анти-зацикливание Main (fingerprint streak)
+│       │   ├── index.ts            # Публичные экспорты движка
+│       │   └── __tests__/          # Jest-матрица правил (9 файлов, 82 теста)
+│       ├── components/
+│       │   ├── card/               # Card (Reanimated flip), card-images (36 PNG + back)
+│       │   ├── drag-drop/          # DragProvider / Draggable / DropZone (overlay ghost)
+│       │   └── ui/                 # Экранные блоки: StatusBox, баннеры, OpponentSlot,
+│       │                           # TurnActionButtons, to-ui-card
+│       ├── hooks/
+│       │   ├── use-cpu-driver.ts   # CPU driver pulse from the UI (450 ms, per phase)
+│       │   └── use-prepare-turn.ts # Prepare-phase selectors + human auto-draw
+│       ├── playground-screen.tsx   # Игровой стол (композиция ui/*-компонентов)
+│       ├── use-game-engine.ts      # useSyncExternalStore поверх GameEngine.subscribe
+│       └── players.ts              # Составы: 1 человек + 4–5 CPU, аватары
+├── shared/
+│   ├── components/                 # Screen / Button / Text (пере-используемые)
+│   ├── theme/                      # Палитра, типографика, spacing
+│   └── constants/                  # Размеры карт, SCREENS (UI-only, без feature-зависимостей)
+├── navigation/                     # Welcome → Playground (stack)
+├── i18n/                           # i18n-js, ru.json, типизированные tx-ключи
+└── types/                          # Дополнения типов
+```
+
+Ключевые инварианты архитектуры:
+
+- **The engine is the arbiter.** Every player/CPU action is validated inside
+  `GameEngine`; the UI never duplicates rules — it reads immutable snapshots
+  via `useSyncExternalStore` and asks the engine through
+  `peekFirstPrepareTarget` and public methods.
+- **CPU never mutates state directly.** `CpuDirector` acts only through the
+  host's legal API (`drawPrepare`, `playMain`, `takeBottom`, …), so fouls and
+  turn advancement remain the engine's prerogative.
+- **Immutable snapshots.** Every engine mutation publishes a new state object
+  (cloned in `emit()`); UI subscribers render from snapshot data.
+- **No UI imports inside the domain.** Card enums live in `engine/cards.ts`;
+  `components/card/card.props.ts` merely re-exports them.
+
+## Project layout (additional)
+
 - `src/assets/cards` — per-card PNGs
 - `eas.json` — EAS Build + Update profiles
 - `.github/workflows/ci.yml` — PR checks
