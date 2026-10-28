@@ -23,11 +23,11 @@ export const PLAYER_AVATARS: Record<number, number> = {
   5: PLAYER_ONE_AVATAR,
 };
 
-export const MIN_PLAYERS = 4;
+export const MIN_PLAYERS = 3;
 export const MAX_PLAYERS = 6;
 export const DEFAULT_PLAYER_COUNT = 4;
 
-/** Build seats: one human + (count-1) CPUs. Count must be 4–6. */
+/** Build seats: one human + (count-1) CPUs. Count is clamped to 3–6. */
 export function buildSeats(playerCount: number): SeatConfig[] {
   const n = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.floor(playerCount)));
   const cpus = CPU_ROSTER.slice(0, n - 1).map((c) => ({

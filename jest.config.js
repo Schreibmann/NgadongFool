@@ -5,6 +5,7 @@ module.exports = {
   roots: ["<rootDir>/src"],
   testMatch: ["**/__tests__/**/*.test.ts"],
   moduleNameMapper: {
+    "\\.(png|jpe?g|gif|webp|bmp|otf|ttf)$": "<rootDir>/src/__mocks__/asset-mock.js",
     "^@features/(.*)$": "<rootDir>/src/features/$1",
     "^@shared-constants$": "<rootDir>/src/shared/constants",
     "^@shared-components/(.*)$": "<rootDir>/src/shared/components/$1",
@@ -24,7 +25,9 @@ module.exports = {
           moduleResolution: "node",
           jsx: "react",
           skipLibCheck: true,
-          types: ["jest"],
+          // "node" declares the global `require` used by asset imports
+          // (players.ts, card-images.ts) in UI-adjacent test files.
+          types: ["jest", "node"],
         },
       },
     ],

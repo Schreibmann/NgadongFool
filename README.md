@@ -39,7 +39,7 @@ do not import from UI code; UI composes both.
 ```text
 src/
 ├── features/
-│   ├── welcome/                     # Экран приветствия: выбор 4–6 игроков, CTA «Играть»
+│   ├── welcome/                     # Экран приветствия: выбор 3–6 игроков, CTA «Играть»
 │   │   └── welcome-screen.tsx
 │   └── game/
 │       ├── engine/                  # Чистый TS-движок правил (без React)

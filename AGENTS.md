@@ -119,7 +119,7 @@ Main ──(≤2 active, then 1)──► Ended
 
 ## 4. Setup and dealing
 
-1. 2–6 players (UI currently 4–6 via `buildSeats`).
+1. 2–6 players (UI currently 3–6 via `buildSeats`).
 2. The dealer is the previous round's watchman. First round: random or agreed.
 3. Dealer deals, **starting with the seat clockwise after himself**:
    2 cards face-down (stumps) + 1 card face-up (hand) to each player. Remaining
