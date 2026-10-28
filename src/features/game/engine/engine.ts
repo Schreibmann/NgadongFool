@@ -71,34 +71,33 @@ export class GameEngine {
    * API; the engine stays the single arbiter of fouls and turn advancement.
    */
   private buildCpuHost(): GameCpuHost {
-    const self = this;
     return {
-      findPlayer: (playerId) => findPlayer(self.state, playerId),
-      getState: () => self.state,
+      findPlayer: (playerId) => findPlayer(this.state, playerId),
+      getState: () => this.state,
       updateState: (patch, message) => {
-        self.state = { ...self.state, ...patch };
+        this.state = { ...this.state, ...patch };
         if (message !== undefined) {
-          self.state = { ...self.state, message };
+          this.state = { ...this.state, message };
         }
-        self.emit();
+        this.emit();
       },
-      cascadeOwnTops: (playerId) => self.cascadeOwnTops(playerId),
-      drawPrepare: (playerId) => self.drawPrepare(playerId),
+      cascadeOwnTops: (playerId) => this.cascadeOwnTops(playerId),
+      drawPrepare: (playerId) => this.drawPrepare(playerId),
       placePrepare: (playerId, targetId) =>
-        self.placePrepare(playerId, targetId),
-      keepPrepare: (playerId) => self.keepPrepare(playerId),
-      playMain: (playerId, card) => self.playMain(playerId, card),
-      takeBottom: (playerId) => self.takeBottom(playerId),
-      flipDiscard: (playerId) => self.flipDiscard(playerId),
-      claimStumps: (playerId) => self.claimStumps(playerId),
-      exitGame: (playerId) => self.exitGame(playerId),
+        this.placePrepare(playerId, targetId),
+      keepPrepare: (playerId) => this.keepPrepare(playerId),
+      playMain: (playerId, card) => this.playMain(playerId, card),
+      takeBottom: (playerId) => this.takeBottom(playerId),
+      flipDiscard: (playerId) => this.flipDiscard(playerId),
+      claimStumps: (playerId) => this.claimStumps(playerId),
+      exitGame: (playerId) => this.exitGame(playerId),
       giveHuyovyeCard: (giverId, receiverId, card) =>
-        self.giveHuyovyeCard(giverId, receiverId, card),
+        this.giveHuyovyeCard(giverId, receiverId, card),
       dropHuyovyeObligation: (giverId, receiverId) =>
-        self.dropHuyovyeObligation(giverId, receiverId),
-      finishHuyovye: () => self.finishHuyovye(),
-      skipMainTurn: (fromPlayerId) => self.skipMainTurn(fromPlayerId),
-      parkMainFlipper: (flipperId) => self.parkMainFlipper(flipperId),
+        this.dropHuyovyeObligation(giverId, receiverId),
+      finishHuyovye: () => this.finishHuyovye(),
+      skipMainTurn: (fromPlayerId) => this.skipMainTurn(fromPlayerId),
+      parkMainFlipper: (flipperId) => this.parkMainFlipper(flipperId),
     };
   }
 
