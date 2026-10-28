@@ -266,8 +266,9 @@ isUnbeatable(card):
 
 ### 7.2 Taking the pile
 
-**Resolved interpretation R7:** default intent is `whole_pile`. Engine method
-`takeBottom` currently still implements bottom-only — see Open Question Q4.
+**Resolved interpretation R7:** `bottom_only`. If the player cannot beat the
+**top** of `current`, they take **only the bottom** card (`takeBottom` /
+`shift`). The rest of the pile stays on the table. Whole-pile take is rejected.
 
 ### 7.3 Discard (отбой)
 
@@ -341,7 +342,7 @@ the deck is empty (§6.1).
 | `sixOnAce`             | `mandatory` + P7 to ace owner | optional placement (rejected) |
 | `sixOnAceRestriction`  | `"off"`        | `"pip_six_blocks_all"` |
 | `trumpFromLastCard`    | `"last_card_suit"` | `"previous_card_suit"`, `"none"` |
-| `takeAction`           | `"whole_pile"` | `"bottom_only"` (engine `takeBottom` still bottom-only — Q4) |
+| `takeAction`           | `"bottom_only"` | `"whole_pile"` (rejected) |
 | `sneakyLead`           | `"off"`        | `"after_last_giver"` |
 | `discardSizeOnExit`    | `"recount"`    | `"frozen_after_first_exit"` |
 | `beatSameSuit`         | `"strictly_higher"` | `"equal_beats"` |
@@ -379,7 +380,8 @@ the deck is empty (§6.1).
 2. ~~Do MAIN-phase fouls convert into gifts?~~ **CLOSED: immediate Huyovye
    interrupt, then resume Main (`resumeMainAfterHuyovye`).**
 3. Unify foul → turn-move semantics between Prepare and Main.
-4. `takeBottom` implements `bottom_only`; default intent is `whole_pile` — sync.
+4. ~~`takeBottom` / `takeAction`.~~ **CLOSED: `bottom_only` (take only the
+   bottom card when unable to beat the top).**
 5. Enforce P17 with a real deadline (timeout) mechanism.
 6. Human deadlock in Huyovye when a giver has only one card — obligation dropped
    identically for humans and CPUs (CPU path done; keep human path identical).
