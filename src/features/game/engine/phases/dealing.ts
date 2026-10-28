@@ -1,7 +1,8 @@
 import { Phase, GameState, EnginePlayer, StartOptions } from "../types";
 import { EngineCard } from "../types";
-import { createDeck36, shuffleDeck } from "../deck";
+import { createDeck, shuffleDeck } from "../deck";
 import { nextClockwiseId } from "../seats";
+import { DEFAULT_DECK_SIZE } from "../cards";
 
 /** Find or pick the dealer seat for this deal. */
 function resolveDealerId(
@@ -45,6 +46,7 @@ export function buildInitialGameState(
   return {
     phase: Phase.Deal,
     deck: [],
+    deckSize: options.deckSize ?? DEFAULT_DECK_SIZE,
     players,
     dealerId,
     watchmanId,
@@ -73,7 +75,7 @@ export function buildInitialGameState(
  * dealer, remaining deck in the center; first active seat is after the dealer.
  */
 export function dealStage(state: GameState, rng: () => number): GameState {
-  const deck = shuffleDeck(createDeck36(), rng);
+  const deck = shuffleDeck(createDeck(state.deckSize), rng);
   const orderIds: number[] = [];
   let cursor = state.dealerId;
   for (let i = 0; i < state.players.length; i++) {

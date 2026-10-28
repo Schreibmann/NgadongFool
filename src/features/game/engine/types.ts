@@ -1,4 +1,4 @@
-import { CardRanks, CardSuits } from "./cards";
+import { CardRanks, CardSuits, DeckSize } from "./cards";
 
 export type PlayerId = number;
 
@@ -60,6 +60,8 @@ export interface StartOptions {
   /** UI-only: forces a fresh GameEngine when remounting with the same seats. */
   sessionNonce?: number;
   seats: SeatConfig[];
+  /** 36 (default) or 52 cards. */
+  deckSize?: DeckSize;
   /** Previous watchman becomes dealer; omit to pick randomly. */
   watchmanId?: number | null;
   seed?: number;
@@ -75,6 +77,8 @@ export type ProtocolKind = "claim_stumps" | "exit" | "watchman_handoff";
 
 export interface GameState {
   phase: Phase;
+  /** 36 or 52 — defines the lowest rank (six / two) and its ace wrap. */
+  deckSize: DeckSize;
   deck: EngineCard[];
   players: EnginePlayer[];
   dealerId: PlayerId;

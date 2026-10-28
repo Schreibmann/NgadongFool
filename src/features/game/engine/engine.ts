@@ -1,4 +1,4 @@
-import { CardRanks } from "./cards";
+import { CardRanks, lowestRankOf } from "./cards";
 import {
   EngineCard,
   EnginePlayer,
@@ -273,6 +273,7 @@ export class GameEngine {
         this.state.players,
         playerId,
         top,
+        this.lowestRank(),
       );
       // Self-as-target is a no-op for cascade (own top cannot land on itself).
       if (!target || target.id === playerId) {
@@ -395,6 +396,7 @@ export class GameEngine {
       this.state.players,
       playerId,
       held,
+      this.lowestRank(),
     );
     if (!first) {
       return false;
@@ -404,7 +406,13 @@ export class GameEngine {
       this.emit();
       return false;
     }
-    if (!canPlaceOnTop(topOf(findPlayer(this.state, targetId)), held)) {
+    if (
+      !canPlaceOnTop(
+        topOf(findPlayer(this.state, targetId)),
+        held,
+        this.lowestRank(),
+      )
+    ) {
       return false;
     }
 
@@ -428,6 +436,7 @@ export class GameEngine {
       this.state.players,
       playerId,
       held,
+      this.lowestRank(),
     );
     // Skipping a mandatory dump is a foul, but the keep still happens
     // (player chose not to place — turn passes with хуёвая).
@@ -468,8 +477,8 @@ export class GameEngine {
     if (!from || !to) return;
 
     const targetTop = to.hand[0];
-    const sixOnAce =
-      card.rank === CardRanks.six &&
+    const lowestOnAce =
+      card.rank === this.lowestRank() &&
       targetTop !== undefined &&
       targetTop.rank === CardRanks.ace;
 
@@ -481,8 +490,8 @@ export class GameEngine {
     to.hand.unshift(cloneCard(card));
     this.state = { ...this.state, players };
 
-    // Six→ace awards huyovaya to the ace owner (not when placing on own ace).
-    if (sixOnAce && fromId !== toId) {
+    // Lowest→ace awards huyovaya to the ace owner (not when placing on own ace).
+    if (lowestOnAce && fromId !== toId) {
       this.awardFoul(toId, Foul.ReceivedLowestOnHighest);
     }
   }
@@ -807,7 +816,7 @@ export class GameEngine {
     }
 
     const target = this.state.current[this.state.current.length - 1];
-    if (!canBeat(target, card, this.state.trump)) {
+    if (!canBeat(target, card, this.state.trump, this.lowestRank())) {
       this.awardFoul(playerId, Foul.IllegalBeat);
       this.state = {
         ...this.state,
@@ -1213,6 +1222,11 @@ export class GameEngine {
       throw new Error("inactive player");
     }
   }
+
+  /** Lowest rank in play — the card that wraps onto an ace (six / two). */
+  private lowestRank(): CardRanks {
+    return lowestRankOf(this.state.deckSize);
+  }
 }
 
 /** Test helper: legal prepare target without mutating. */
@@ -1221,7 +1235,12 @@ export function peekFirstPrepareTarget(
   drawerId: number,
   card: EngineCard,
 ) {
-  return firstLegalPrepareTarget(state.players, drawerId, card);
+  return firstLegalPrepareTarget(
+    state.players,
+    drawerId,
+    card,
+    lowestRankOf(state.deckSize),
+  );
 }
 
 export function peekFirstClockwiseLegal(

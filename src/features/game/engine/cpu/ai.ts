@@ -1,4 +1,4 @@
-import { CardSuits } from "../cards";
+import { CardRanks, CardSuits } from "../cards";
 import { EngineCard, EnginePlayer } from "../types";
 import { canBeat } from "../rules";
 
@@ -29,9 +29,10 @@ export function pickBeater(
   hand: EngineCard[],
   target: EngineCard,
   trump: CardSuits | null,
+  lowestRank: CardRanks = CardRanks.six,
 ): EngineCard | null {
   const beaters = hand
-    .filter((c) => canBeat(target, c, trump))
+    .filter((c) => canBeat(target, c, trump, lowestRank))
     .sort((a, b) => {
       const aTrump = trump != null && a.suit === trump ? 1 : 0;
       const bTrump = trump != null && b.suit === trump ? 1 : 0;

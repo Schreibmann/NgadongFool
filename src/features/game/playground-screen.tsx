@@ -102,11 +102,12 @@ const FAN_CARD_FIRST: ViewStyle = { marginLeft: 0 };
 export const PlaygroundScreen: FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, "Playground">>();
   const playerCount = route.params?.playerCount ?? DEFAULT_PLAYER_COUNT;
+  const deckSize = route.params?.deckSize ?? 36;
   const seats = useMemo(() => buildSeats(playerCount), [playerCount]);
   const sessionNonce = useMemo(() => Date.now(), []);
   const { width } = useWindowDimensions();
 
-  const { engine, state } = useGameEngine({ seats, sessionNonce });
+  const { engine, state } = useGameEngine({ seats, sessionNonce, deckSize });
   useCpuDriver(engine, state);
   const prepareTurn = usePrepareTurn(engine, state);
 

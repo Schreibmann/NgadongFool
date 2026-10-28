@@ -71,6 +71,8 @@ interface GameState {
   phase: Phase;
   players: EnginePlayer[];
   deck: EngineCard[];
+  /** 36 (default) or 52; defines the deck's lowest rank (six / two). */
+  deckSize: DeckSize;
   dealerId: number;
   watchmanId: number | null;
   previousWatchmanId: number | null;
@@ -157,11 +159,13 @@ Huyovye mid-prepare.
 
 A card may be placed ONLY on a top card **exactly one rank lower** (adjacency
 chain, resolved interpretation R1). One special exception exists (§5.4).
+In the rules below, **six** means the deck's **lowest rank** (`six` for a
+36-card deck, `two` for a 52-card deck — config `deckSize`).
 
 ```
 canPlaceOnTop(top, card):
   if !top: false
-  if card.rank == CardRanks.six: return top.rank == CardRanks.ace
+  if card.rank == lowestRank: return top.rank == CardRanks.ace
   return top.rank == card.rank - 1
 ```
 
@@ -340,6 +344,7 @@ the deck is empty (§6.1).
 | Config key             | Default        | Alternatives considered and rejected for default |
 |------------------------|----------------|--------------------------------------------------|
 | `sixOnAce`             | `mandatory` + P7 to ace owner | optional placement (rejected) |
+| `deckSize`             | `36` → lowest rank = six | `52` → lowest rank = two; the lowest card inherits the six's role: wraps onto an ace in Prepare (P7), never beats an ace in Main |
 | `sixOnAceRestriction`  | `"off"`        | `"pip_six_blocks_all"` |
 | `trumpFromLastCard`    | `"last_card_suit"` | `"previous_card_suit"`, `"none"` |
 | `takeAction`           | `"bottom_only"` | `"whole_pile"` (rejected) |

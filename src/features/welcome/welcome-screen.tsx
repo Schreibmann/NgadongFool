@@ -119,12 +119,15 @@ const COUNTS = Array.from(
   (_, i) => MIN_PLAYERS + i,
 );
 
+const DECK_SIZES = [36, 52] as const;
+
 export const WelcomeScreen: FC = () => {
   const navigation = useNavigation<WelcomeNav>();
   const [playerCount, setPlayerCount] = useState(DEFAULT_PLAYER_COUNT);
+  const [deckSize, setDeckSize] = useState<36 | 52>(36);
 
   const navigateToPlayground = () =>
-    navigation.navigate(SCREENS.PLAYGROUND, { playerCount });
+    navigation.navigate(SCREENS.PLAYGROUND, { playerCount, deckSize });
 
   return (
     <View testID="WelcomeScreen" style={FULL}>
@@ -168,6 +171,19 @@ export const WelcomeScreen: FC = () => {
                   style={TEXT}
                   text={String(n)}
                 />
+              </Pressable>
+            ))}
+          </View>
+          <Text style={COUNT_LABEL} text="Карт в колоде" />
+          <View style={COUNT_ROW}>
+            {DECK_SIZES.map((n) => (
+              <Pressable
+                key={n}
+                testID={`deck-size-${n}`}
+                onPress={() => setDeckSize(n)}
+                style={deckSize === n ? COUNT_CHIP_ON : COUNT_CHIP}
+              >
+                <Text style={TEXT} text={String(n)} />
               </Pressable>
             ))}
           </View>

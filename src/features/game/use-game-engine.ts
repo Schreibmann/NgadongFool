@@ -2,7 +2,7 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
 import { GameEngine, StartOptions } from "./engine";
 
 function seatsKey(options: StartOptions): string {
-  return `${options.seed ?? "r"}:${options.sessionNonce ?? "0"}:${options.watchmanId ?? "x"}:${options.seats
+  return `${options.seed ?? "r"}:${options.sessionNonce ?? "0"}:${options.deckSize ?? 36}:${options.watchmanId ?? "x"}:${options.seats
     .map((s) => s.id)
     .join(",")}`;
 }

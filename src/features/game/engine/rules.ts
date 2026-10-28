@@ -2,15 +2,19 @@ import { CardRanks, CardSuits } from "./cards";
 import { EngineCard, EnginePlayer } from "./types";
 import { firstClockwiseWhere } from "./seats";
 
-/** Prepare: six→ace, else rank − 1 on target top. */
+/**
+ * Prepare: lowest→ace (wrap), else rank − 1 on target top.
+ * `lowestRank` is the deck's pip floor: six for a 36-card deck, two for 52.
+ */
 export function canPlaceOnTop(
   top: EngineCard | undefined,
   card: EngineCard,
+  lowestRank: CardRanks = CardRanks.six,
 ): boolean {
   if (!top) {
     return false;
   }
-  if (card.rank === CardRanks.six) {
+  if (card.rank === lowestRank) {
     return top.rank === CardRanks.ace;
   }
   return top.rank === card.rank - 1;
@@ -24,9 +28,10 @@ export function legalPrepareTargets(
   players: EnginePlayer[],
   _drawerId: number,
   card: EngineCard,
+  lowestRank: CardRanks = CardRanks.six,
 ): EnginePlayer[] {
   return players.filter(
-    (p) => p.active && canPlaceOnTop(topOf(p), card),
+    (p) => p.active && canPlaceOnTop(topOf(p), card, lowestRank),
   );
 }
 
@@ -35,9 +40,10 @@ export function firstLegalPrepareTarget(
   players: EnginePlayer[],
   drawerId: number,
   card: EngineCard,
+  lowestRank: CardRanks = CardRanks.six,
 ): EnginePlayer | null {
   return firstClockwiseWhere(players, drawerId, (p) =>
-    canPlaceOnTop(topOf(p), card),
+    canPlaceOnTop(topOf(p), card, lowestRank),
   );
 }
 
@@ -61,19 +67,20 @@ export function isUnbeatableMain(
  * - Else: same suit higher OR trump.
  * - Spade ace / trump ace on the table are unbeatable (check TARGET only —
  *   playing an unbeatable ace as the beater is always allowed when otherwise legal).
- * - Six does not beat ace.
+ * - The deck's lowest rank (six for 36, two for 52) does not beat ace.
  */
 export function canBeat(
   target: EngineCard,
   card: EngineCard,
   trump: CardSuits | null,
+  lowestRank: CardRanks = CardRanks.six,
 ): boolean {
   // Only the card being beaten can be "unbeatable". Never reject the beater
   // because it itself is a trump/spade ace.
   if (isUnbeatableMain(target, trump)) {
     return false;
   }
-  if (card.rank === CardRanks.six && target.rank === CardRanks.ace) {
+  if (card.rank === lowestRank && target.rank === CardRanks.ace) {
     return false;
   }
 

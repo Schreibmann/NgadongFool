@@ -1,7 +1,7 @@
-import { CardRanks, CardSuits } from "./cards";
+import { CardRanks, CardSuits, DeckSize } from "./cards";
 import { EngineCard } from "./types";
 
-const RANKS: CardRanks[] = [
+const RANKS_36: CardRanks[] = [
   CardRanks.six,
   CardRanks.seven,
   CardRanks.eight,
@@ -13,6 +13,15 @@ const RANKS: CardRanks[] = [
   CardRanks.ace,
 ];
 
+/** 52-card deck adds the pips below six. */
+const RANKS_52: CardRanks[] = [
+  CardRanks.two,
+  CardRanks.three,
+  CardRanks.four,
+  CardRanks.five,
+  ...RANKS_36,
+];
+
 const SUITS: CardSuits[] = [
   CardSuits.Spades,
   CardSuits.Clubs,
@@ -20,14 +29,20 @@ const SUITS: CardSuits[] = [
   CardSuits.Hearts,
 ];
 
-export function createDeck36(): EngineCard[] {
+export function createDeck(size: DeckSize = 36): EngineCard[] {
+  const ranks = size === 52 ? RANKS_52 : RANKS_36;
   const deck: EngineCard[] = [];
   for (const suit of SUITS) {
-    for (const rank of RANKS) {
+    for (const rank of ranks) {
       deck.push({ suit, rank });
     }
   }
   return deck;
+}
+
+/** Canonical 36-card folk deck. Kept for existing callers/tests. */
+export function createDeck36(): EngineCard[] {
+  return createDeck(36);
 }
 
 /** Mulberry32 — deterministic shuffle for tests. */

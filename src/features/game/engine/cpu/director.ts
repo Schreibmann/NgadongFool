@@ -1,5 +1,6 @@
 import { EngineCard, EnginePlayer, GameState, Phase, PlayerId } from "../types";
 import { firstLegalPrepareTarget, pickWorstHuyovyeCard } from "../rules";
+import { lowestRankOf } from "../cards";
 import { MainLoopGuard } from "./loop-guard";
 import { CPU_MISTAKE_RATE, pickBeater, pickLead } from "./ai";
 
@@ -89,6 +90,7 @@ export class CpuDirector {
       this.host.getState().players,
       playerId,
       held,
+      lowestRankOf(this.host.getState().deckSize),
     );
     if (target) {
       // Rare mistake: keep while a mandatory dump exists (P4).
@@ -166,13 +168,14 @@ export class CpuDirector {
     }
 
     const target = state.current[state.current.length - 1];
-    const beater = pickBeater(player.hand, target, state.trump);
+    const lowest = lowestRankOf(state.deckSize);
+    const beater = pickBeater(player.hand, target, state.trump, lowest);
 
     if (beater) {
       // Rare mistake: take or play a non-beater instead of the smart beat.
       if (this.shouldMistake()) {
         const nonBeaters = player.hand.filter(
-          (c) => !pickBeater([c], target, state.trump),
+          (c) => !pickBeater([c], target, state.trump, lowest),
         );
         if (nonBeaters.length > 0 && this.rng() < 0.5) {
           const bad = nonBeaters[Math.floor(this.rng() * nonBeaters.length)];
