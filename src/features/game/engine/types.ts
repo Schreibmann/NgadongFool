@@ -1,4 +1,4 @@
-import { CardRanks, CardSuits, DeckSize } from "./cards";
+import type { CardRanks, CardSuits, DeckSize } from "./cards";
 
 export type PlayerId = number;
 

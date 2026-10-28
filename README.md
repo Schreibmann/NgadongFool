@@ -19,17 +19,28 @@ npm start          # Expo dev server (press i / a / w)
 npm run web        # Web only
 ```
 
-| Script | Purpose |
-|--------|---------|
-| `npm start` | Dev client / Expo Go |
-| `npm run ios` / `npm run android` | Native targets via Expo |
-| `npm run web` | Browser |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm test` | Jest rules-engine matrix |
-| `npm run export:web` | Static web export smoke |
+| Script                            | Purpose                  |
+| --------------------------------- | ------------------------ |
+| `npm start`                       | Dev client / Expo Go     |
+| `npm run ios` / `npm run android` | Native targets via Expo  |
+| `npm run web`                     | Browser                  |
+| `npm run lint`                    | Biome                    |
+| `npm run lint:fix`                | Biome (auto-fix)         |
+| `npm run typecheck`               | `tsc --noEmit`           |
+| `npm test`                        | Jest rules-engine matrix |
+| `npm run export:web`              | Static web export smoke  |
 
 Node **20+** required (`engines` in `package.json`).
+
+Toolchain notes:
+
+- TypeScript **7** (native, no JavaScript compiler API) is the project
+  type-checker, installed as `@typescript/native` (npm alias of
+  `typescript@7`); `npm run typecheck` runs it via the `.bin/tsc` link, which
+  `scripts/ensure-tsc-bin.cjs` (postinstall) keeps pointed at it.
+- ts-jest 29 still needs the JS compiler API, so the `typescript` dependency
+  is aliased to `@typescript/typescript6` (a TypeScript 6 mirror). Jest
+  transpiles with it; linting is Biome (`biome.json`).
 
 ## Project structure
 
@@ -101,11 +112,11 @@ src/
 
 Profiles (see `eas.json`):
 
-| Profile | Use |
-|---------|-----|
-| `development` | Dev client, internal, simulator/APK |
-| `preview` | Internal distribution, channel `preview` |
-| `production` | Store/channel `production`, remote app version bump |
+| Profile       | Use                                                 |
+| ------------- | --------------------------------------------------- |
+| `development` | Dev client, internal, simulator/APK                 |
+| `preview`     | Internal distribution, channel `preview`            |
+| `production`  | Store/channel `production`, remote app version bump |
 
 ### One-time Expo dashboard setup (you must do this)
 
@@ -147,12 +158,12 @@ GitHub Action `.github/workflows/ci.yml` runs on pull requests and pushes to `de
 
 Repo `vercel.json` pins the modern Expo static export (do **not** use legacy `expo build:web`):
 
-| Setting | Value |
-|---------|--------|
-| Install Command | `npm ci` |
-| Build Command | `npx expo export --platform web` |
-| Output Directory | `dist` |
-| Framework Preset | Other / no framework |
+| Setting          | Value                            |
+| ---------------- | -------------------------------- |
+| Install Command  | `npm ci`                         |
+| Build Command    | `npx expo export --platform web` |
+| Output Directory | `dist`                           |
+| Framework Preset | Other / no framework             |
 
 SPA fallback rewrite → `/index.html` is included. If the dashboard overrides these fields, match the table above (or clear overrides so `vercel.json` wins). Scripts `build:web` / `vercel-build` alias the same export for older templates.
 

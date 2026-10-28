@@ -1,5 +1,5 @@
-import { CardRanks, CardSuits } from "../cards";
-import { EngineCard, EnginePlayer } from "../types";
+import { CardRanks, type CardSuits } from "../cards";
+import type { EngineCard, EnginePlayer } from "../types";
 import { canBeat } from "../rules";
 
 /** Chance a CPU intentionally fouls / misplays instead of the smart legal move. */
@@ -11,7 +11,7 @@ export const CPU_MISTAKE_RATE = 0.1;
  */
 export function pickLead(
   player: EnginePlayer,
-  trump: CardSuits | null,
+  trump: CardSuits | null
 ): EngineCard | null {
   if (player.hand.length === 0) return null;
   const nonTrump = player.hand
@@ -29,7 +29,7 @@ export function pickBeater(
   hand: EngineCard[],
   target: EngineCard,
   trump: CardSuits | null,
-  lowestRank: CardRanks = CardRanks.six,
+  lowestRank: CardRanks = CardRanks.six
 ): EngineCard | null {
   const beaters = hand
     .filter((c) => canBeat(target, c, trump, lowestRank))

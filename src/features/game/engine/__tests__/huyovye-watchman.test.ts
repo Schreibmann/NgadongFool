@@ -1,5 +1,5 @@
 import { GameEngine } from "../engine";
-import { Phase, SeatConfig } from "../types";
+import { Phase, type SeatConfig } from "../types";
 import { resolvePrepareHeld } from "./prepare-helpers";
 
 const seats4: SeatConfig[] = [
@@ -33,7 +33,7 @@ describe("manual huyovye", () => {
     const eng = new GameEngine({ seats: seats4, seed: 1, watchmanId: 1 });
     eng.nameTrumpAloud(100);
     expect(eng.getSnapshot().players.find((p) => p.id === 100)?.huyovye).toBe(
-      1,
+      1
     );
     drainPrepareLeaveHuyovye(eng);
     const s = eng.getSnapshot();
@@ -67,9 +67,9 @@ describe("manual huyovye", () => {
       const before = eng.getSnapshot().huyovyeQueue.length;
       expect(eng.giveHuyovyeCard(100, q2.receiverId, g2.hand[0])).toBe(true);
       expect(eng.getSnapshot().lastFoul).toBeNull();
-      expect(eng.getSnapshot().players.find((p) => p.id === 100)!.hand).toHaveLength(
-        1,
-      );
+      expect(
+        eng.getSnapshot().players.find((p) => p.id === 100)!.hand
+      ).toHaveLength(1);
       expect(eng.getSnapshot().huyovyeQueue.length).toBeLessThan(before);
     }
   });

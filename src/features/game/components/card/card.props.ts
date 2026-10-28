@@ -5,7 +5,7 @@
  */
 export { CardRanks, CardSuits } from "../../engine/cards";
 
-import { CardRanks, CardSuits } from "../../engine/cards";
+import type { CardRanks, CardSuits } from "../../engine/cards";
 
 export interface Card {
   rank: CardRanks;

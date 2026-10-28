@@ -6,9 +6,9 @@
  *
  * Run: node scripts/generate-low-rank-cards.cjs
  */
-const fs = require("fs");
-const path = require("path");
-const zlib = require("zlib");
+const fs = require("node:fs");
+const path = require("node:path");
+const zlib = require("node:zlib");
 
 // ——— PNG encoder (RGBA, bit depth 8, filter 0) ———
 
@@ -24,7 +24,8 @@ const CRC_TABLE = (() => {
 
 function crc32(buf) {
   let c = -1;
-  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  for (let i = 0; i < buf.length; i++)
+    c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
   return (c ^ -1) >>> 0;
 }
 
@@ -119,14 +120,31 @@ function cardBase(cv) {
     cv,
     (x, y) => {
       if (!inRoundedRect(x, y, m, m, W - m, H - m, CORNER_R)) return false;
-      return !inRoundedRect(x, y, m + BORDER, m + BORDER, W - m - BORDER, H - m - BORDER, CORNER_R - BORDER);
+      return !inRoundedRect(
+        x,
+        y,
+        m + BORDER,
+        m + BORDER,
+        W - m - BORDER,
+        H - m - BORDER,
+        CORNER_R - BORDER
+      );
     },
-    EDGE,
+    EDGE
   );
   drawShape(
     cv,
-    (x, y) => inRoundedRect(x, y, m + BORDER, m + BORDER, W - m - BORDER, H - m - BORDER, CORNER_R - BORDER),
-    FACE,
+    (x, y) =>
+      inRoundedRect(
+        x,
+        y,
+        m + BORDER,
+        m + BORDER,
+        W - m - BORDER,
+        H - m - BORDER,
+        CORNER_R - BORDER
+      ),
+    FACE
   );
 }
 
@@ -184,8 +202,10 @@ const SHAPES = {
     );
   },
   diamonds(x, y) {
-    return inTriangle(x, y, 0.5, 0.0, 0.98, 0.5, 0.5, 1.0) ||
-      inTriangle(x, y, 0.5, 0.0, 0.02, 0.5, 0.5, 1.0);
+    return (
+      inTriangle(x, y, 0.5, 0.0, 0.98, 0.5, 0.5, 1.0) ||
+      inTriangle(x, y, 0.5, 0.0, 0.02, 0.5, 0.5, 1.0)
+    );
   },
   clubs(x, y) {
     return (
@@ -229,7 +249,7 @@ for (const suit of ["spades", "clubs", "diamonds", "hearts"]) {
       H - 6 - 7 * GLYPH_SCALE,
       GLYPH_SCALE,
       color,
-      true,
+      true
     );
     drawSuit(cv, suit, color, 52);
     const file = path.join(OUT, `${suit}-${RANK_NAMES[rank]}.png`);

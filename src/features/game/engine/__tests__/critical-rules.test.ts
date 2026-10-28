@@ -1,17 +1,8 @@
 import { CardRanks, CardSuits } from "../cards";
 import { GameEngine } from "../engine";
-import {
-  canBeat,
-  canPlaceOnTop,
-  firstLegalPrepareTarget,
-} from "../rules";
+import { canBeat, canPlaceOnTop, firstLegalPrepareTarget } from "../rules";
 import { nextClockwiseId } from "../seats";
-import {
-  EnginePlayer,
-  Foul,
-  Phase,
-  SeatConfig,
-} from "../types";
+import { type EnginePlayer, Foul, Phase, type SeatConfig } from "../types";
 
 const seats3: SeatConfig[] = [
   { id: 1, name: "A", isCPU: false },
@@ -19,10 +10,7 @@ const seats3: SeatConfig[] = [
   { id: 3, name: "C", isCPU: false },
 ];
 
-function player(
-  id: number,
-  patch: Partial<EnginePlayer> = {},
-): EnginePlayer {
+function player(id: number, patch: Partial<EnginePlayer> = {}): EnginePlayer {
   return {
     id,
     name: `P${id}`,
@@ -41,8 +29,8 @@ describe("critical 1: six-on-ace prepare", () => {
     expect(
       canPlaceOnTop(
         { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        { rank: CardRanks.six, suit: CardSuits.Clubs },
-      ),
+        { rank: CardRanks.six, suit: CardSuits.Clubs }
+      )
     ).toBe(true);
   });
 
@@ -177,10 +165,7 @@ describe("critical 3: placePrepare hand cascade with 1 deck card", () => {
       players: [
         player(1, {
           name: "A",
-          hand: [
-            seven,
-            { rank: CardRanks.king, suit: CardSuits.Hearts },
-          ],
+          hand: [seven, { rank: CardRanks.king, suit: CardSuits.Hearts }],
         }),
         player(2, {
           name: "B",
@@ -235,7 +220,7 @@ describe("critical 4: human huyovye last-card drop", () => {
     expect(s.players.find((p) => p.id === 1)!.hand).toHaveLength(1);
     // Remaining CPU/human gift can still clear; queue must not stall on P1.
     expect(
-      s.huyovyeQueue.every((q) => !(q.giverId === 1 && q.receiverId === 2)),
+      s.huyovyeQueue.every((q) => !(q.giverId === 1 && q.receiverId === 2))
     ).toBe(true);
   });
 });
@@ -311,7 +296,7 @@ describe("critical 5: prepare out-of-turn advances like main", () => {
     expect(
       s.players
         .find((p) => p.id === 1)!
-        .hand.some((c) => c.rank === held.rank && c.suit === held.suit),
+        .hand.some((c) => c.rank === held.rank && c.suit === held.suit)
     ).toBe(true);
   });
 });
@@ -389,29 +374,29 @@ describe("helpers: canBeat / firstLegal / nextClockwise activeOnly", () => {
       canBeat(
         { rank: CardRanks.nine, suit: CardSuits.Spades },
         { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        trump,
-      ),
+        trump
+      )
     ).toBe(false);
     expect(
       canBeat(
         { rank: CardRanks.nine, suit: CardSuits.Spades },
         { rank: CardRanks.king, suit: CardSuits.Spades },
-        trump,
-      ),
+        trump
+      )
     ).toBe(true);
     expect(
       canBeat(
         { rank: CardRanks.nine, suit: CardSuits.Hearts },
         { rank: CardRanks.king, suit: CardSuits.Clubs },
-        trump,
-      ),
+        trump
+      )
     ).toBe(false);
     expect(
       canBeat(
         { rank: CardRanks.nine, suit: CardSuits.Hearts },
         { rank: CardRanks.king, suit: CardSuits.Hearts },
-        trump,
-      ),
+        trump
+      )
     ).toBe(true);
   });
 

@@ -1,4 +1,4 @@
-import { SeatConfig } from "./engine";
+import type { SeatConfig } from "./engine";
 
 const PLAYER_ONE_AVATAR = require("@assets/avatars/cpu_avatar_1.png");
 const PLAYER_TWO_AVATAR = require("@assets/avatars/cpu_avatar_2.png");
@@ -29,14 +29,14 @@ export const DEFAULT_PLAYER_COUNT = 4;
 
 /** Build seats: one human + (count-1) CPUs. Count is clamped to 3–6. */
 export function buildSeats(playerCount: number): SeatConfig[] {
-  const n = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.floor(playerCount)));
+  const n = Math.min(
+    MAX_PLAYERS,
+    Math.max(MIN_PLAYERS, Math.floor(playerCount))
+  );
   const cpus = CPU_ROSTER.slice(0, n - 1).map((c) => ({
     id: c.id,
     name: c.name,
     isCPU: true,
   }));
-  return [
-    ...cpus,
-    { id: HUMAN_ID, name: "Ngadong man", isCPU: false },
-  ];
+  return [...cpus, { id: HUMAN_ID, name: "Ngadong man", isCPU: false }];
 }

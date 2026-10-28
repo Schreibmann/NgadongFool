@@ -1,4 +1,10 @@
-import { EngineCard, EnginePlayer, GameState, Phase, PlayerId } from "../types";
+import {
+  type EngineCard,
+  type EnginePlayer,
+  type GameState,
+  Phase,
+  type PlayerId,
+} from "../types";
 import { firstLegalPrepareTarget, pickWorstHuyovyeCard } from "../rules";
 import { lowestRankOf } from "../cards";
 import { MainLoopGuard } from "./loop-guard";
@@ -14,10 +20,7 @@ export interface GameCpuHost {
   /** Board read; returns the current internal snapshot. */
   getState(): GameState;
   /** Engine-driven state patch; the engine emits after applying. */
-  updateState(
-    patch: Partial<GameState>,
-    message?: string | null,
-  ): void;
+  updateState(patch: Partial<GameState>, message?: string | null): void;
 
   cascadeOwnTops(playerId: PlayerId): number;
   drawPrepare(playerId: PlayerId): boolean;
@@ -34,7 +37,7 @@ export interface GameCpuHost {
   giveHuyovyeCard(
     giverId: PlayerId,
     receiverId: PlayerId,
-    card: EngineCard,
+    card: EngineCard
   ): boolean;
   /** Remove one owed gift: giver holds only his last card. */
   dropHuyovyeObligation(giverId: PlayerId, receiverId: PlayerId): void;
@@ -62,7 +65,7 @@ export class CpuDirector {
   constructor(
     host: GameCpuHost,
     rng: () => number,
-    mistakeRate: number = CPU_MISTAKE_RATE,
+    mistakeRate: number = CPU_MISTAKE_RATE
   ) {
     this.host = host;
     this.rng = rng;
@@ -90,7 +93,7 @@ export class CpuDirector {
       this.host.getState().players,
       playerId,
       held,
-      lowestRankOf(this.host.getState().deckSize),
+      lowestRankOf(this.host.getState().deckSize)
     );
     if (target) {
       // Rare mistake: keep while a mandatory dump exists (P4).
@@ -179,7 +182,7 @@ export class CpuDirector {
       // Rare mistake: take or play a non-beater instead of the smart beat.
       if (this.shouldMistake()) {
         const nonBeaters = player.hand.filter(
-          (c) => !pickBeater([c], target, state.trump, lowest),
+          (c) => !pickBeater([c], target, state.trump, lowest)
         );
         if (nonBeaters.length > 0 && this.rng() < 0.5) {
           const bad = nonBeaters[Math.floor(this.rng() * nonBeaters.length)];
@@ -228,7 +231,10 @@ export class CpuDirector {
       }
 
       const drained = this.host.getState();
-      if (drained.phase === Phase.Huyovye && drained.huyovyeQueue.length === 0) {
+      if (
+        drained.phase === Phase.Huyovye &&
+        drained.huyovyeQueue.length === 0
+      ) {
         this.host.finishHuyovye();
       }
     } finally {

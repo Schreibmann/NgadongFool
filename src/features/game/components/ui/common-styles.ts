@@ -1,4 +1,4 @@
-import { ImageStyle, TextStyle, ViewStyle } from "react-native";
+import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
 import { color, typography } from "@theme";
 
 export const FULL: ViewStyle = { flex: 1 };

@@ -1,4 +1,4 @@
-import { GameEngine, peekFirstPrepareTarget } from "../engine";
+import { type GameEngine, peekFirstPrepareTarget } from "../engine";
 import { Phase } from "../types";
 
 /** Draw if needed, then place on first legal target or keep when none. */
@@ -10,11 +10,7 @@ export function resolvePrepareHeld(eng: GameEngine, playerId: number): void {
   }
   const after = eng.getSnapshot();
   if (after.phase !== Phase.Prepare || !after.prepareHeld) return;
-  const target = peekFirstPrepareTarget(
-    after,
-    playerId,
-    after.prepareHeld,
-  );
+  const target = peekFirstPrepareTarget(after, playerId, after.prepareHeld);
   if (target) {
     eng.placePrepare(playerId, target.id);
   } else {
@@ -50,7 +46,9 @@ export function drainPrepare(eng: GameEngine): void {
     if (!humanGift) {
       break;
     }
-    const giver = eng.getSnapshot().players.find((p) => p.id === humanGift.giverId);
+    const giver = eng
+      .getSnapshot()
+      .players.find((p) => p.id === humanGift.giverId);
     if (!giver || giver.hand.length <= 1) {
       break;
     }

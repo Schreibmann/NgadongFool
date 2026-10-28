@@ -1,22 +1,22 @@
-import { FC, useCallback, useMemo, useState } from "react";
+import { type FC, useCallback, useMemo, useState } from "react";
 import {
   FlatList,
-  ImageStyle,
-  ListRenderItemInfo,
+  type ImageStyle,
+  type ListRenderItemInfo,
   Pressable,
   StyleSheet,
   View,
-  ViewStyle,
+  type ViewStyle,
   useWindowDimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { RouteProp, useRoute } from "@react-navigation/native";
+import { type RouteProp, useRoute } from "@react-navigation/native";
 import { Screen } from "@shared-components/screen/screen";
-import { Card as CardType } from "./components/card/card.props";
+import type { Card as CardType } from "./components/card/card.props";
 import { Card } from "./components/card/card";
 import { DragProvider, Draggable, DropZone } from "./components/drag-drop";
-import { EngineCard, EnginePlayer, Phase } from "./engine";
+import { type EngineCard, type EnginePlayer, Phase } from "./engine";
 import { useGameEngine } from "./use-game-engine";
 import { useCpuDriver } from "./hooks/use-cpu-driver";
 import { usePrepareTurn } from "./hooks/use-prepare-turn";
@@ -30,14 +30,8 @@ import {
 } from "./components/ui/protocol-banners";
 import { TurnActionButtons } from "./components/ui/turn-action-buttons";
 import { OpponentSlot } from "./components/ui/opponent-slot";
-import {
-  toUiCard,
-  uiCardKey,
-} from "./components/ui/to-ui-card";
-import {
-  FULL,
-  PLAYER,
-} from "./components/ui/common-styles";
+import { toUiCard, uiCardKey } from "./components/ui/to-ui-card";
+import { FULL, PLAYER } from "./components/ui/common-styles";
 import {
   DEFAULT_PLAYER_COUNT,
   HUMAN_ID,
@@ -46,7 +40,7 @@ import {
 } from "./players";
 import { CardFanStride, CardWidth, cardHeight } from "@shared-constants";
 import { spacing } from "@theme";
-import { RootStackParamList } from "@navigation/types";
+import type { RootStackParamList } from "@navigation/types";
 
 const BENCH_BACKGROUND = require("@assets/images/bench.png");
 const PLAYGROUND_BACKGROUND = require("@assets/images/playground.png");
@@ -124,7 +118,7 @@ export const PlaygroundScreen: FC = () => {
 
   const myProtocols = me ? engine.protocolsFor(me.id) : [];
   const humanHuyovyeDue = state.huyovyeQueue.filter(
-    (q) => q.giverId === HUMAN_ID,
+    (q) => q.giverId === HUMAN_ID
   );
 
   const handData: CardType[] = me
@@ -144,7 +138,7 @@ export const PlaygroundScreen: FC = () => {
         });
       }
     },
-    [engine, prepareTurn.isMyTurn, state.phase],
+    [engine, prepareTurn.isMyTurn, state.phase]
   );
 
   const onDropMain = useCallback(
@@ -152,7 +146,7 @@ export const PlaygroundScreen: FC = () => {
       if (!prepareTurn.isMyTurn || state.phase !== Phase.Main) return;
       engine.playMain(HUMAN_ID, { rank: card.rank, suit: card.suit });
     },
-    [engine, prepareTurn.isMyTurn, state.phase],
+    [engine, prepareTurn.isMyTurn, state.phase]
   );
 
   const giveHuyovye = useCallback(
@@ -161,7 +155,7 @@ export const PlaygroundScreen: FC = () => {
       const ok = engine.giveHuyovyeCard(HUMAN_ID, receiverId, huyovyePick);
       if (ok) setHuyovyePick(null);
     },
-    [engine, huyovyePick],
+    [engine, huyovyePick]
   );
 
   const renderHandItem = useCallback(
@@ -198,7 +192,7 @@ export const PlaygroundScreen: FC = () => {
         </Draggable>
       );
     },
-    [huyovyePick, prepareTurn.isMyTurn, state.phase],
+    [huyovyePick, prepareTurn.isMyTurn, state.phase]
   );
 
   const getItemLayout = useCallback(
@@ -207,7 +201,7 @@ export const PlaygroundScreen: FC = () => {
       offset: CARD_ITEM_LENGTH * index,
       index,
     }),
-    [],
+    []
   );
 
   if (!me) {
@@ -216,7 +210,7 @@ export const PlaygroundScreen: FC = () => {
 
   const seatChipWidth = Math.max(
     72,
-    Math.min(110, (width - 24) / Math.max(3, opponents.length)),
+    Math.min(110, (width - 24) / Math.max(3, opponents.length))
   );
 
   return (
@@ -269,7 +263,10 @@ export const PlaygroundScreen: FC = () => {
                   source={BENCH_BACKGROUND}
                 />
                 {state.phase === Phase.Prepare && state.prepareHeld ? (
-                  <Draggable data={toUiCard(state.prepareHeld)} disabled={!prepareTurn.isMyTurn}>
+                  <Draggable
+                    data={toUiCard(state.prepareHeld)}
+                    disabled={!prepareTurn.isMyTurn}
+                  >
                     <Card {...toUiCard(state.prepareHeld)} opened />
                   </Draggable>
                 ) : null}
@@ -293,7 +290,10 @@ export const PlaygroundScreen: FC = () => {
                     {state.current.map((card, i) => (
                       <View
                         key={uiCardKey(toUiCard(card), i)}
-                        style={[i === 0 ? FAN_CARD_FIRST : FAN_CARD, { zIndex: i }]}
+                        style={[
+                          i === 0 ? FAN_CARD_FIRST : FAN_CARD,
+                          { zIndex: i },
+                        ]}
                       >
                         <Card {...toUiCard(card)} opened />
                       </View>
@@ -307,7 +307,10 @@ export const PlaygroundScreen: FC = () => {
                     {state.current.map((card, i) => (
                       <View
                         key={uiCardKey(toUiCard(card), i)}
-                        style={[i === 0 ? FAN_CARD_FIRST : FAN_CARD, { zIndex: i }]}
+                        style={[
+                          i === 0 ? FAN_CARD_FIRST : FAN_CARD,
+                          { zIndex: i },
+                        ]}
                       >
                         <Card {...toUiCard(card)} opened />
                       </View>

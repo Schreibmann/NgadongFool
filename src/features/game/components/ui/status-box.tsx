@@ -1,6 +1,6 @@
-import { FC } from "react";
+import type { FC } from "react";
 import { View } from "react-native";
-import { EnginePlayer, GameState, Phase } from "../../engine";
+import { type EnginePlayer, type GameState, Phase } from "../../engine";
 import { Text } from "@shared-components/text/text";
 import { TEXT, SMALL } from "./common-styles";
 

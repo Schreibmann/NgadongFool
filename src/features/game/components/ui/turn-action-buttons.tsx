@@ -1,5 +1,5 @@
-import { FC } from "react";
-import { GameEngine, GameState, Phase } from "../../engine";
+import type { FC } from "react";
+import { type GameEngine, type GameState, Phase } from "../../engine";
 import { Button } from "@shared-components/button/button";
 import { BUTTON_WRAPPER, TEXT } from "./common-styles";
 

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { GameEngine, GameState, Phase } from "../engine";
+import { type GameEngine, type GameState, Phase } from "../engine";
 
 /** Cadence between CPU steps so moves stay readable. */
 const CPU_STEP_MS = 450;
@@ -30,10 +30,7 @@ export function useCpuDriver(engine: GameEngine, state: GameState): void {
   }, [engine, state.phase, state.huyovyeQueue, state.players]);
 
   useEffect(() => {
-    if (
-      state.phase !== Phase.Prepare &&
-      state.phase !== Phase.Main
-    ) {
+    if (state.phase !== Phase.Prepare && state.phase !== Phase.Main) {
       return undefined;
     }
     // Minimal deps: one interval per phase entry; the engine itself is the

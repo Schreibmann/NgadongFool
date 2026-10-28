@@ -1,6 +1,6 @@
-import { FC } from "react";
-import { View, ViewStyle } from "react-native";
-import { GameState } from "../../engine";
+import type { FC } from "react";
+import { View, type ViewStyle } from "react-native";
+import type { GameState } from "../../engine";
 import { Text } from "@shared-components/text/text";
 import { Button } from "@shared-components/button/button";
 import { SMALL, TEXT, BANNER } from "./common-styles";
@@ -36,4 +36,3 @@ export const WatchmanHandoffBanner: FC<WatchmanHandoffBannerProps> = ({
     ) : null}
   </View>
 );
-

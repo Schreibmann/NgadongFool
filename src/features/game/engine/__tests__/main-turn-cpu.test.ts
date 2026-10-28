@@ -1,6 +1,6 @@
 import { CardRanks, CardSuits } from "../cards";
 import { GameEngine } from "../engine";
-import { EnginePlayer, Phase, SeatConfig } from "../types";
+import { type EnginePlayer, Phase, type SeatConfig } from "../types";
 
 const seats4: SeatConfig[] = [
   { id: 1, name: "A", isCPU: true },
@@ -11,7 +11,7 @@ const seats4: SeatConfig[] = [
 
 function player(
   seat: SeatConfig,
-  patch: Partial<EnginePlayer> = {},
+  patch: Partial<EnginePlayer> = {}
 ): EnginePlayer {
   return {
     id: seat.id,
@@ -52,7 +52,7 @@ describe("main: trump ace beats trump king", () => {
                   { rank: CardRanks.six, suit: CardSuits.Clubs },
                   { rank: CardRanks.seven, suit: CardSuits.Diamonds },
                 ],
-        }),
+        })
       ),
     });
 
@@ -111,7 +111,7 @@ describe("CPU main turn advances", () => {
                   { rank: CardRanks.eight, suit: CardSuits.Clubs },
                   { rank: CardRanks.nine, suit: CardSuits.Clubs },
                 ],
-        }),
+        })
       ),
     });
 
@@ -142,7 +142,7 @@ describe("CPU main turn advances", () => {
                 { rank: CardRanks.jack, suit: CardSuits.Clubs },
               ],
             })
-          : player(s),
+          : player(s)
       ),
     });
 
@@ -172,7 +172,7 @@ describe("CPU main turn advances", () => {
                 { rank: CardRanks.jack, suit: CardSuits.Clubs },
               ],
             })
-          : player(s),
+          : player(s)
       ),
     });
 
@@ -194,7 +194,7 @@ describe("CPU main turn advances", () => {
       current: [],
       roundJustEnded: false,
       players: seats4.map((s) =>
-        s.id === 1 ? player(s, { hand: [], stumps: [] }) : player(s),
+        s.id === 1 ? player(s, { hand: [], stumps: [] }) : player(s)
       ),
     });
 
@@ -247,7 +247,7 @@ describe("CPU main turn advances", () => {
             { rank: CardRanks.eight, suit: CardSuits.Hearts },
           ],
           isCPU: s.id !== 100,
-        }),
+        })
       ),
     });
 
@@ -286,10 +286,13 @@ describe("CPU main turn advances", () => {
       ],
       players: seats4.map((s) =>
         player(s, {
-          hand: s.id === 1 ? [] : [{ rank: CardRanks.nine, suit: CardSuits.Diamonds }],
+          hand:
+            s.id === 1
+              ? []
+              : [{ rank: CardRanks.nine, suit: CardSuits.Diamonds }],
           stumps: [],
           isCPU: true,
-        }),
+        })
       ),
     });
 

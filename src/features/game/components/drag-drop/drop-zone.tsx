@@ -1,6 +1,6 @@
 import * as React from "react";
-import { StyleProp, View, ViewStyle } from "react-native";
-import { DropHandler, useDragContext } from "./drag-context";
+import { type StyleProp, View, type ViewStyle } from "react-native";
+import { type DropHandler, useDragContext } from "./drag-context";
 
 interface DropZoneProps {
   onDrop: DropHandler;
@@ -10,7 +10,7 @@ interface DropZoneProps {
 }
 
 type MeasureFn = (
-  callback: (x: number, y: number, width: number, height: number) => void,
+  callback: (x: number, y: number, width: number, height: number) => void
 ) => void;
 
 function readMeasureInWindow(node: unknown): MeasureFn | null {
@@ -29,7 +29,7 @@ function readMeasureInWindow(node: unknown): MeasureFn | null {
 
 /** Prefer DOM rect on web — matches pointer pageX/pageY under scroll. */
 function readBoundingClientRect(
-  node: unknown,
+  node: unknown
 ): { x: number; y: number; width: number; height: number } | null {
   if (typeof node !== "object" || node === null) {
     return null;
@@ -84,7 +84,7 @@ export function DropZone({
     (node: React.ElementRef<typeof View> | null) => {
       hostRef.current = node;
     },
-    [],
+    []
   );
 
   React.useEffect(() => {

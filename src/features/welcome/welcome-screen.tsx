@@ -1,22 +1,22 @@
-import { FC, useState } from "react";
+import { type FC, useState } from "react";
 import {
   View,
-  ViewStyle,
-  TextStyle,
-  ImageStyle,
+  type ViewStyle,
+  type TextStyle,
+  type ImageStyle,
   Pressable,
   StyleSheet,
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { color, spacing, typography } from "@theme";
 import { Screen } from "@shared-components/screen/screen";
 import { Button } from "@shared-components/button/button";
 import { Text } from "@shared-components/text/text";
 import { SCREENS } from "@shared-constants";
-import { RootStackParamList } from "@navigation/types";
+import type { RootStackParamList } from "@navigation/types";
 import {
   DEFAULT_PLAYER_COUNT,
   MAX_PLAYERS,
@@ -119,7 +119,7 @@ type WelcomeNav = NativeStackNavigationProp<RootStackParamList, "Home">;
 
 const COUNTS = Array.from(
   { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
-  (_, i) => MIN_PLAYERS + i,
+  (_, i) => MIN_PLAYERS + i
 );
 
 const DECK_SIZES = [36, 52] as const;
@@ -170,10 +170,7 @@ export const WelcomeScreen: FC = () => {
                 onPress={() => setPlayerCount(n)}
                 style={playerCount === n ? COUNT_CHIP_ON : COUNT_CHIP}
               >
-                <Text
-                  style={TEXT}
-                  text={String(n)}
-                />
+                <Text style={TEXT} text={String(n)} />
               </Pressable>
             ))}
           </View>

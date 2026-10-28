@@ -70,7 +70,7 @@ const FACE: Record<CardSuits, Record<CardRanks, LocalImage>> = {
 export function getCardImageSource(
   suit: CardSuits,
   rank: CardRanks,
-  opened: boolean,
+  opened: boolean
 ): LocalImage {
   if (!opened) {
     return BACK;

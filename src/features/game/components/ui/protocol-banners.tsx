@@ -1,16 +1,22 @@
-import { FC } from "react";
+import type { FC } from "react";
 import {
-  ImageStyle,
+  type ImageStyle,
   ScrollView,
   StyleSheet,
   View,
-  ViewStyle,
+  type ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
-import { EnginePlayer } from "../../engine";
+import type { EnginePlayer } from "../../engine";
 import { Button } from "@shared-components/button/button";
 import { Text } from "@shared-components/text/text";
-import { SMALL, TEXT, BANNER, BUTTON_WRAPPER, BUTTON_TEXT } from "./common-styles";
+import {
+  SMALL,
+  TEXT,
+  BANNER,
+  BUTTON_WRAPPER,
+  BUTTON_TEXT,
+} from "./common-styles";
 
 const BUTTON_BACKGROUND = require("@assets/images/button-background.png");
 
@@ -32,7 +38,11 @@ export const ProtocolBanners: FC<{
     {protocols.includes("claim_stumps") ? (
       <View style={BANNER} testID="ClaimStumpsPrompt">
         <Text style={TEXT} text="Беру пни / пеньки / дубки!" />
-        <Button testID="show-stumps-button" style={BUTTON_WRAPPER} onPress={onClaimStumps}>
+        <Button
+          testID="show-stumps-button"
+          style={BUTTON_WRAPPER}
+          onPress={onClaimStumps}
+        >
           <View style={STUMP_BUTTON_STYLE}>
             <Image
               contentFit="contain"
@@ -77,4 +87,3 @@ export const DuelControls: FC<{
     ))}
   </ScrollView>
 );
-

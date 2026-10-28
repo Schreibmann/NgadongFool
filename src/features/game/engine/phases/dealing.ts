@@ -1,5 +1,10 @@
-import { Phase, GameState, EnginePlayer, StartOptions } from "../types";
-import { EngineCard } from "../types";
+import {
+  Phase,
+  type GameState,
+  type EnginePlayer,
+  type StartOptions,
+} from "../types";
+import type { EngineCard } from "../types";
 import { createDeck, shuffleDeck } from "../deck";
 import { nextClockwiseId } from "../seats";
 import { DEFAULT_DECK_SIZE } from "../cards";
@@ -8,12 +13,9 @@ import { DEFAULT_DECK_SIZE } from "../cards";
 function resolveDealerId(
   players: EnginePlayer[],
   watchmanId: number | null,
-  rng: () => number,
+  rng: () => number
 ): { dealerId: number; watchmanId: number | null } {
-  if (
-    watchmanId != null &&
-    players.some((p) => p.id === watchmanId)
-  ) {
+  if (watchmanId != null && players.some((p) => p.id === watchmanId)) {
     return { dealerId: watchmanId, watchmanId };
   }
   const idx = Math.floor(rng() * players.length);
@@ -24,7 +26,7 @@ function resolveDealerId(
 /** Empty pre-deal state (phase Deal) for the given seats. */
 export function buildInitialGameState(
   options: StartOptions,
-  rng: () => number,
+  rng: () => number
 ): GameState {
   const players: EnginePlayer[] = options.seats.map((s) => ({
     id: s.id,
@@ -40,7 +42,7 @@ export function buildInitialGameState(
   const { dealerId, watchmanId } = resolveDealerId(
     players,
     options.watchmanId === undefined ? null : options.watchmanId,
-    rng,
+    rng
   );
 
   return {

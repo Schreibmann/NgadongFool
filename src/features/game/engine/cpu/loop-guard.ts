@@ -1,4 +1,4 @@
-import { GameState } from "../types";
+import type { GameState } from "../types";
 import { cardKey } from "../deck";
 
 /** Identical Main fingerprints in a row before forcing takeBottom / flip. */

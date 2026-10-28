@@ -1,7 +1,7 @@
 import { TouchableOpacity } from "react-native";
 import { Text } from "../text/text";
 import { viewPresets, textPresets } from "./button.presets";
-import { ButtonProps } from "./button.props";
+import type { ButtonProps } from "./button.props";
 
 export function Button(props: ButtonProps) {
   const {

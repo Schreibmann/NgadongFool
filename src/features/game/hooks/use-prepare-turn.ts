@@ -1,5 +1,10 @@
 import { useEffect, useMemo } from "react";
-import { EngineCard, GameEngine, GameState, Phase } from "../engine";
+import {
+  type EngineCard,
+  type GameEngine,
+  type GameState,
+  Phase,
+} from "../engine";
 import { peekFirstPrepareTarget } from "../engine";
 import { HUMAN_ID } from "../players";
 
@@ -19,7 +24,7 @@ export interface PrepareTurn {
  */
 export function usePrepareTurn(
   engine: GameEngine,
-  state: GameState,
+  state: GameState
 ): PrepareTurn {
   const me = state.players.find((p) => p.id === HUMAN_ID);
   const isMyTurn = state.activePlayerId === HUMAN_ID;
@@ -51,14 +56,7 @@ export function usePrepareTurn(
     ) {
       engine.drawPrepare(HUMAN_ID);
     }
-  }, [
-    engine,
-    isMyTurn,
-    state.phase,
-    state.prepareHeld,
-    state.deck.length,
-    state.activePlayerId,
-  ]);
+  }, [engine, isMyTurn, state.phase, state.prepareHeld, state.deck.length]);
 
   return { prepareDumpCard, legalPrepareTarget, canKeepPrepare, isMyTurn };
 }

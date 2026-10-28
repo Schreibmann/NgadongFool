@@ -1,12 +1,12 @@
 import * as React from "react";
-import { Platform, StyleSheet, ViewStyle } from "react-native";
+import { Platform, StyleSheet, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { Card } from "../card/card.props";
+import type { Card } from "../card/card.props";
 import { useDragContext } from "./drag-context";
 
 interface DraggableProps {
@@ -88,9 +88,7 @@ function readDomTarget(event: unknown): EventTarget | null {
   return null;
 }
 
-function canCapturePointer(
-  target: unknown,
-): target is EventTarget & {
+function canCapturePointer(target: unknown): target is EventTarget & {
   setPointerCapture: (id: number) => void;
   releasePointerCapture: (id: number) => void;
 } {
@@ -101,9 +99,7 @@ function canCapturePointer(
   );
 }
 
-function isDomElement(
-  node: unknown,
-): node is Element & {
+function isDomElement(node: unknown): node is Element & {
   style: CSSStyleDeclaration;
   addEventListener: EventTarget["addEventListener"];
   removeEventListener: EventTarget["removeEventListener"];
@@ -123,7 +119,7 @@ function isDomElement(
 }
 
 type MeasureInWindowFn = (
-  callback: (x: number, y: number, width: number, height: number) => void,
+  callback: (x: number, y: number, width: number, height: number) => void
 ) => void;
 
 function readMeasureInWindow(node: unknown): MeasureInWindowFn | null {
@@ -146,12 +142,8 @@ export function Draggable({
   children,
   style,
 }: DraggableProps) {
-  const {
-    findDropZoneAt,
-    beginOverlayDrag,
-    moveOverlayDrag,
-    endOverlayDrag,
-  } = useDragContext();
+  const { findDropZoneAt, beginOverlayDrag, moveOverlayDrag, endOverlayDrag } =
+    useDragContext();
   const hidden = useSharedValue(0);
   const dataRef = React.useRef(data);
   dataRef.current = data;
@@ -239,7 +231,7 @@ export function Draggable({
       }
       reset();
     },
-    [findDropZoneAt, reset],
+    [findDropZoneAt, reset]
   );
 
   const onNativeBegin = React.useCallback(() => {
@@ -250,7 +242,7 @@ export function Draggable({
     (dx: number, dy: number) => {
       moveOverlayDrag(dx, dy);
     },
-    [moveOverlayDrag],
+    [moveOverlayDrag]
   );
 
   const gesture = React.useMemo(
@@ -266,7 +258,7 @@ export function Draggable({
         .onEnd((event) => {
           runOnJS(handleDrop)(event.absoluteX, event.absoluteY);
         }),
-    [disabled, handleDrop, onNativeBegin, onNativeUpdate],
+    [disabled, handleDrop, onNativeBegin, onNativeUpdate]
   );
 
   React.useEffect(
@@ -275,7 +267,7 @@ export function Draggable({
       dragStartCleanupRef.current = null;
       clearDocDragGuard();
     },
-    [clearDocDragGuard],
+    [clearDocDragGuard]
   );
 
   const bindHostNode = React.useCallback((node: unknown) => {
@@ -332,7 +324,7 @@ export function Draggable({
 
       void startOverlay();
     },
-    [clearDocDragGuard, disabled, startOverlay],
+    [clearDocDragGuard, disabled, startOverlay]
   );
 
   const onWebPointerMove = React.useCallback(
@@ -341,10 +333,10 @@ export function Draggable({
       const point = readPagePoint(event);
       moveOverlayDrag(
         point.pageX - dragOriginRef.current.x,
-        point.pageY - dragOriginRef.current.y,
+        point.pageY - dragOriginRef.current.y
       );
     },
-    [moveOverlayDrag],
+    [moveOverlayDrag]
   );
 
   const onWebPointerUp = React.useCallback(
@@ -353,7 +345,7 @@ export function Draggable({
       const point = readPagePoint(event);
       void handleDrop(point.pageX, point.pageY);
     },
-    [handleDrop],
+    [handleDrop]
   );
 
   const onWebPointerCancel = React.useCallback(() => {
@@ -400,7 +392,8 @@ const styles = StyleSheet.create({
   wrap: {
     alignSelf: "flex-start",
   },
-  webGrab: Platform.OS === "web"
-    ? ({ userSelect: "none" } as unknown as ViewStyle)
-    : {},
+  webGrab:
+    Platform.OS === "web"
+      ? ({ userSelect: "none" } as unknown as ViewStyle)
+      : {},
 });

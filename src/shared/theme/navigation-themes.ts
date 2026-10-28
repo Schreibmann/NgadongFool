@@ -1,4 +1,7 @@
-import { DarkTheme as NavDark, DefaultTheme as NavLight } from "@react-navigation/native";
+import {
+  DarkTheme as NavDark,
+  DefaultTheme as NavLight,
+} from "@react-navigation/native";
 import { palette } from "./palette";
 
 export const LightTheme = {

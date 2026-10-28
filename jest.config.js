@@ -5,7 +5,8 @@ module.exports = {
   roots: ["<rootDir>/src"],
   testMatch: ["**/__tests__/**/*.test.ts"],
   moduleNameMapper: {
-    "\\.(png|jpe?g|gif|webp|bmp|otf|ttf)$": "<rootDir>/src/__mocks__/asset-mock.js",
+    "\\.(png|jpe?g|gif|webp|bmp|otf|ttf)$":
+      "<rootDir>/src/__mocks__/asset-mock.js",
     "^@features/(.*)$": "<rootDir>/src/features/$1",
     "^@shared-constants$": "<rootDir>/src/shared/constants",
     "^@shared-components/(.*)$": "<rootDir>/src/shared/components/$1",
@@ -16,6 +17,14 @@ module.exports = {
     "^.+\\.tsx?$": [
       "ts-jest",
       {
+        // The project type-checker is the native TypeScript 7
+        // (devDependency `@typescript/native`), which exposes no JavaScript
+        // API. ts-jest 29 still requires the JS compiler API, so the
+        // `typescript` dependency is aliased to `@typescript/typescript6` —
+        // a mirror that re-exports TypeScript 6. ts-jest (including its
+        // static `require("typescript")` calls) resolves the mirror, while
+        // `tsc` itself is re-pointed at TS 7 by scripts/ensure-tsc-bin.cjs
+        // (postinstall hook).
         tsconfig: {
           strict: true,
           strictNullChecks: true,

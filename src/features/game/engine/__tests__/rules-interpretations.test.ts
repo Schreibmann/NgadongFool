@@ -1,12 +1,7 @@
 import { CardRanks, CardSuits } from "../cards";
 import { GameEngine } from "../engine";
 import { nextClockwiseId } from "../seats";
-import {
-  EnginePlayer,
-  Foul,
-  Phase,
-  SeatConfig,
-} from "../types";
+import { type EnginePlayer, Foul, Phase, type SeatConfig } from "../types";
 
 const seats3: SeatConfig[] = [
   { id: 1, name: "A", isCPU: false },
@@ -20,10 +15,7 @@ const seatsCpuGivers: SeatConfig[] = [
   { id: 3, name: "C", isCPU: true },
 ];
 
-function player(
-  id: number,
-  patch: Partial<EnginePlayer> = {},
-): EnginePlayer {
+function player(id: number, patch: Partial<EnginePlayer> = {}): EnginePlayer {
   return {
     id,
     name: `P${id}`,
@@ -352,9 +344,7 @@ describe("interpretation: main fouls → хуёвые card dumps", () => {
     });
     const afterDrop = eng.getSnapshot();
     expect(afterDrop.players.find((p) => p.id === 3)!.hand).toHaveLength(1);
-    expect(afterDrop.huyovyeQueue).toEqual([
-      { giverId: 2, receiverId: 1 },
-    ]);
+    expect(afterDrop.huyovyeQueue).toEqual([{ giverId: 2, receiverId: 1 }]);
 
     eng.giveHuyovyeCard(2, 1, {
       rank: CardRanks.six,

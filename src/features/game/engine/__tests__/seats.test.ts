@@ -1,4 +1,4 @@
-import { EnginePlayer } from "../types";
+import type { EnginePlayer } from "../types";
 import {
   clockwiseFromExclusive,
   firstClockwiseWhere,
@@ -7,10 +7,7 @@ import {
 import { canPlaceOnTop, topOf } from "../rules";
 import { CardRanks, CardSuits } from "../cards";
 
-function p(
-  id: number,
-  hand: EnginePlayer["hand"] = [],
-): EnginePlayer {
+function p(id: number, hand: EnginePlayer["hand"] = []): EnginePlayer {
   return {
     id,
     name: `P${id}`,
@@ -45,7 +42,7 @@ describe("clockwise helpers", () => {
     const six = { rank: CardRanks.six, suit: CardSuits.Spades };
     // drawer = 2; circle: 3, 1, 2 — both 3 and 1 accept six→ace; first is 3
     const first = firstClockwiseWhere(table, 2, (pl) =>
-      canPlaceOnTop(topOf(pl), six),
+      canPlaceOnTop(topOf(pl), six)
     );
     expect(first?.id).toBe(3);
   });

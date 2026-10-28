@@ -1,11 +1,11 @@
-import {
+import type {
   StyleProp,
   TextProps as TextProperties,
   TextStyle,
 } from "react-native";
-import { TranslateOptions } from "i18n-js";
-import { TextPresets } from "./text.presets";
-import { TxKeyPath } from "@i18n";
+import type { TranslateOptions } from "i18n-js";
+import type { TextPresets } from "./text.presets";
+import type { TxKeyPath } from "@i18n";
 
 export interface TextProps extends TextProperties {
   children?: React.ReactNode;

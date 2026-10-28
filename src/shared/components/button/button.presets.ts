@@ -1,4 +1,4 @@
-import { ViewStyle, TextStyle } from "react-native";
+import type { ViewStyle, TextStyle } from "react-native";
 import { color, spacing } from "@theme";
 
 const BASE_VIEW: ViewStyle = {

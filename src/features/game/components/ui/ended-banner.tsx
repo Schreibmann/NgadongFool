@@ -1,6 +1,6 @@
-import { FC } from "react";
+import type { FC } from "react";
 import { View } from "react-native";
-import { GameState, EnginePlayer } from "../../engine";
+import type { GameState, EnginePlayer } from "../../engine";
 import { Text } from "@shared-components/text/text";
 import { Button } from "@shared-components/button/button";
 import { SMALL, TEXT, BANNER, BUTTON_WRAPPER } from "./common-styles";

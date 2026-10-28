@@ -1,14 +1,10 @@
 import { memo } from "react";
-import {
-  Pressable,
-  View,
-  ViewStyle,
-} from "react-native";
+import { Pressable, View, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { Card } from "../card/card";
-import { Card as CardType } from "../card/card.props";
+import type { Card as CardType } from "../card/card.props";
 import { DropZone } from "../drag-drop";
-import { EnginePlayer, Phase } from "../../engine";
+import { type EnginePlayer, Phase } from "../../engine";
 import { Text } from "@shared-components/text/text";
 import { PLAYER, PLAYER_IMAGE, SMALL } from "./common-styles";
 import { toUiCard } from "./to-ui-card";

@@ -1,6 +1,6 @@
 import { CardRanks, CardSuits } from "../cards";
 import { GameEngine } from "../engine";
-import { Foul, Phase, SeatConfig } from "../types";
+import { Foul, Phase, type SeatConfig } from "../types";
 import { canBeat } from "../rules";
 import { activePlayers } from "../seats";
 import { drainPrepare, resolvePrepareHeld } from "./prepare-helpers";
@@ -11,10 +11,7 @@ const seats3: SeatConfig[] = [
   { id: 3, name: "C", isCPU: false },
 ];
 
-const seats4: SeatConfig[] = [
-  ...seats3,
-  { id: 4, name: "D", isCPU: true },
-];
+const seats4: SeatConfig[] = [...seats3, { id: 4, name: "D", isCPU: true }];
 
 describe("deal", () => {
   it("gives 2 stumps + 1 face-up to each player", () => {
@@ -130,9 +127,7 @@ describe("main protocol", () => {
     }
     const final = eng.getSnapshot();
     if (final.discardPendingFlip) {
-      expect(final.current.length).toBe(
-        activePlayers(final.players).length,
-      );
+      expect(final.current.length).toBe(activePlayers(final.players).length);
     }
   });
 
@@ -154,8 +149,8 @@ describe("main protocol", () => {
     const receiver = taken.players.find((p) => p.id === next)!;
     expect(
       receiver.hand.some(
-        (c) => c.rank === bottom.rank && c.suit === bottom.suit,
-      ),
+        (c) => c.rank === bottom.rank && c.suit === bottom.suit
+      )
     ).toBe(true);
   });
 
@@ -198,7 +193,7 @@ describe("stumps / exit", () => {
     const eng = new GameEngine({ seats: seats3, seed: 31 });
     eng.peekStumps(1);
     expect(eng.getSnapshot().lastFoul?.foul).toBe(
-      Foul.LookedStumpsWithoutAnnounce,
+      Foul.LookedStumpsWithoutAnnounce
     );
   });
 });

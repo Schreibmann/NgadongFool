@@ -1,16 +1,24 @@
 /* Compose a 4×4 contact sheet of the generated low-rank cards for review. */
-const fs = require("fs");
-const path = require("path");
-const zlib = require("zlib");
+const fs = require("node:fs");
+const path = require("node:path");
+const zlib = require("node:zlib");
 
 function decodePNG(file) {
   const b = fs.readFileSync(file);
-  let off = 8, w = 0, h = 0, idat = [], colorType = 0;
+  let off = 8,
+    w = 0,
+    h = 0,
+    idat = [],
+    colorType = 0;
   while (off < b.length) {
     const len = b.readUInt32BE(off);
     const type = b.toString("ascii", off + 4, off + 8);
     const data = b.slice(off + 8, off + 8 + len);
-    if (type === "IHDR") { w = data.readUInt32BE(0); h = data.readUInt32BE(4); colorType = data[9]; }
+    if (type === "IHDR") {
+      w = data.readUInt32BE(0);
+      h = data.readUInt32BE(4);
+      colorType = data[9];
+    }
     if (type === "IDAT") idat.push(data);
     off += 12 + len;
   }
@@ -26,9 +34,13 @@ function decodePNG(file) {
       const bb = y > 0 ? out[(y - 1) * stride + x] : 0;
       const c = x >= bpp && y > 0 ? out[(y - 1) * stride + x - bpp] : 0;
       let v = line[x];
-      if (f === 1) v += a; else if (f === 2) v += bb; else if (f === 3) v += (a + bb) >> 1;
+      if (f === 1) v += a;
+      else if (f === 2) v += bb;
+      else if (f === 3) v += (a + bb) >> 1;
       else if (f === 4) {
-        const pa = Math.abs(bb - c), pb = Math.abs(a - c), pc = Math.abs(a + bb - 2 * c);
+        const pa = Math.abs(bb - c),
+          pb = Math.abs(a - c),
+          pc = Math.abs(a + bb - 2 * c);
         v += pa <= pb && pa <= pc ? a : pb <= pc ? bb : c;
       }
       out[y * stride + x] = v & 255;
@@ -48,7 +60,8 @@ const CRC_TABLE = (() => {
 })();
 function crc32(buf) {
   let c = -1;
-  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  for (let i = 0; i < buf.length; i++)
+    c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
   return (c ^ -1) >>> 0;
 }
 function chunk(type, data) {
@@ -83,14 +96,19 @@ const suits = ["spades", "clubs", "diamonds", "hearts"];
 const ranks = ["two", "three", "four", "five"];
 
 const GAP = 8;
-const CW = 96, CH = 150;
-const COLS = suits.length, ROWS = ranks.length;
+const CW = 96,
+  CH = 150;
+const COLS = suits.length,
+  ROWS = ranks.length;
 const sheetW = COLS * CW + (COLS + 1) * GAP;
 const sheetH = ROWS * CH + (ROWS + 1) * GAP;
 const sheet = Buffer.alloc(sheetW * sheetH * 4);
 const bg = [30, 77, 43];
 for (let i = 0; i < sheet.length; i += 4) {
-  sheet[i] = bg[0]; sheet[i + 1] = bg[1]; sheet[i + 2] = bg[2]; sheet[i + 3] = 255;
+  sheet[i] = bg[0];
+  sheet[i + 1] = bg[1];
+  sheet[i + 2] = bg[2];
+  sheet[i + 3] = 255;
 }
 
 for (let r = 0; r < ROWS; r++) {
@@ -105,8 +123,12 @@ for (let r = 0; r < ROWS; r++) {
         if (a <= 0) continue;
         const di = ((oy + y) * sheetW + ox + x) * 4;
         sheet[di] = Math.round(img.out[si] * a + sheet[di] * (1 - a));
-        sheet[di + 1] = Math.round(img.out[si + 1] * a + sheet[di + 1] * (1 - a));
-        sheet[di + 2] = Math.round(img.out[si + 2] * a + sheet[di + 2] * (1 - a));
+        sheet[di + 1] = Math.round(
+          img.out[si + 1] * a + sheet[di + 1] * (1 - a)
+        );
+        sheet[di + 2] = Math.round(
+          img.out[si + 2] * a + sheet[di + 2] * (1 - a)
+        );
       }
     }
   }

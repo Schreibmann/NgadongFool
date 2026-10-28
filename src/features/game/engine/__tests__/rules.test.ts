@@ -13,8 +13,8 @@ describe("prepare place rules", () => {
     expect(
       canPlaceOnTop(
         { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        { rank: CardRanks.six, suit: CardSuits.Clubs },
-      ),
+        { rank: CardRanks.six, suit: CardSuits.Clubs }
+      )
     ).toBe(true);
   });
 
@@ -22,8 +22,8 @@ describe("prepare place rules", () => {
     expect(
       canPlaceOnTop(
         { rank: CardRanks.nine, suit: CardSuits.Spades },
-        { rank: CardRanks.ten, suit: CardSuits.Hearts },
-      ),
+        { rank: CardRanks.ten, suit: CardSuits.Hearts }
+      )
     ).toBe(true);
   });
 
@@ -31,8 +31,8 @@ describe("prepare place rules", () => {
     expect(
       canPlaceOnTop(
         { rank: CardRanks.nine, suit: CardSuits.Spades },
-        { rank: CardRanks.jack, suit: CardSuits.Hearts },
-      ),
+        { rank: CardRanks.jack, suit: CardSuits.Hearts }
+      )
     ).toBe(false);
   });
 });
@@ -43,7 +43,7 @@ describe("trump from last deck card", () => {
       trumpFromLastDeckCard({
         rank: CardRanks.king,
         suit: CardSuits.Spades,
-      }),
+      })
     ).toBeNull();
   });
 
@@ -52,7 +52,7 @@ describe("trump from last deck card", () => {
       trumpFromLastDeckCard({
         rank: CardRanks.six,
         suit: CardSuits.Diamonds,
-      }),
+      })
     ).toBe(CardSuits.Diamonds);
   });
 });
@@ -65,8 +65,8 @@ describe("main beat rules", () => {
       canBeat(
         { rank: CardRanks.nine, suit: CardSuits.Clubs },
         { rank: CardRanks.jack, suit: CardSuits.Clubs },
-        trump,
-      ),
+        trump
+      )
     ).toBe(true);
   });
 
@@ -75,8 +75,8 @@ describe("main beat rules", () => {
       canBeat(
         { rank: CardRanks.king, suit: CardSuits.Clubs },
         { rank: CardRanks.six, suit: CardSuits.Hearts },
-        trump,
-      ),
+        trump
+      )
     ).toBe(true);
   });
 
@@ -85,8 +85,8 @@ describe("main beat rules", () => {
       canBeat(
         { rank: CardRanks.nine, suit: CardSuits.Spades },
         { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        trump,
-      ),
+        trump
+      )
     ).toBe(false);
   });
 
@@ -95,33 +95,27 @@ describe("main beat rules", () => {
       canBeat(
         { rank: CardRanks.nine, suit: CardSuits.Spades },
         { rank: CardRanks.king, suit: CardSuits.Spades },
-        trump,
-      ),
+        trump
+      )
     ).toBe(true);
   });
 
   it("spade ace is unbeatable", () => {
     expect(
-      isUnbeatableMain(
-        { rank: CardRanks.ace, suit: CardSuits.Spades },
-        trump,
-      ),
+      isUnbeatableMain({ rank: CardRanks.ace, suit: CardSuits.Spades }, trump)
     ).toBe(true);
     expect(
       canBeat(
         { rank: CardRanks.ace, suit: CardSuits.Spades },
         { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        trump,
-      ),
+        trump
+      )
     ).toBe(false);
   });
 
   it("trump ace is unbeatable", () => {
     expect(
-      isUnbeatableMain(
-        { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        trump,
-      ),
+      isUnbeatableMain({ rank: CardRanks.ace, suit: CardSuits.Hearts }, trump)
     ).toBe(true);
   });
 
@@ -130,8 +124,8 @@ describe("main beat rules", () => {
       canBeat(
         { rank: CardRanks.king, suit: CardSuits.Hearts },
         { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        trump,
-      ),
+        trump
+      )
     ).toBe(true);
   });
 
@@ -141,15 +135,15 @@ describe("main beat rules", () => {
       canBeat(
         { rank: CardRanks.six, suit: CardSuits.Clubs },
         { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        trump,
-      ),
+        trump
+      )
     ).toBe(true);
     expect(
       canBeat(
         { rank: CardRanks.jack, suit: CardSuits.Hearts },
         { rank: CardRanks.ace, suit: CardSuits.Hearts },
-        trump,
-      ),
+        trump
+      )
     ).toBe(true);
   });
 
@@ -158,8 +152,8 @@ describe("main beat rules", () => {
       canBeat(
         { rank: CardRanks.ace, suit: CardSuits.Clubs },
         { rank: CardRanks.six, suit: CardSuits.Clubs },
-        trump,
-      ),
+        trump
+      )
     ).toBe(false);
   });
 });
@@ -172,10 +166,10 @@ describe("huyovye dump heuristic", () => {
     const trumpKing = { rank: CardRanks.king, suit: CardSuits.Hearts };
     const trumpAce = { rank: CardRanks.ace, suit: CardSuits.Hearts };
     expect(huyovyeDumpScore(junk, trump)).toBeGreaterThan(
-      huyovyeDumpScore(trumpKing, trump),
+      huyovyeDumpScore(trumpKing, trump)
     );
     expect(huyovyeDumpScore(trumpKing, trump)).toBeGreaterThan(
-      huyovyeDumpScore(trumpAce, trump),
+      huyovyeDumpScore(trumpAce, trump)
     );
   });
 
@@ -183,8 +177,8 @@ describe("huyovye dump heuristic", () => {
     expect(
       pickWorstHuyovyeCard(
         [{ rank: CardRanks.six, suit: CardSuits.Clubs }],
-        trump,
-      ),
+        trump
+      )
     ).toBeNull();
   });
 
@@ -196,7 +190,7 @@ describe("huyovye dump heuristic", () => {
         { rank: CardRanks.six, suit: CardSuits.Clubs },
         { rank: CardRanks.king, suit: CardSuits.Hearts },
       ],
-      trump,
+      trump
     );
     // Both sixes score equal; clubs < diamonds → clubs wins tie-break
     expect(pick).toEqual({
@@ -205,4 +199,3 @@ describe("huyovye dump heuristic", () => {
     });
   });
 });
-

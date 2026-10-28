@@ -1,6 +1,6 @@
 import { CardRanks, CardSuits } from "../cards";
 import { GameEngine } from "../engine";
-import { EnginePlayer, Phase, SeatConfig } from "../types";
+import { type EnginePlayer, Phase, type SeatConfig } from "../types";
 
 const seats4: SeatConfig[] = [
   { id: 1, name: "A", isCPU: true },
@@ -10,7 +10,7 @@ const seats4: SeatConfig[] = [
 ];
 
 function basePlayers(
-  overrides: Partial<Record<number, Partial<EnginePlayer>>> = {},
+  overrides: Partial<Record<number, Partial<EnginePlayer>>> = {}
 ): EnginePlayer[] {
   return seats4.map((s): EnginePlayer => {
     const base: EnginePlayer = {
@@ -76,7 +76,7 @@ describe("CPU huyovye completion", () => {
       queue.push(
         { giverId: 1, receiverId: 100 },
         { giverId: 2, receiverId: 100 },
-        { giverId: 3, receiverId: 100 },
+        { giverId: 3, receiverId: 100 }
       );
     }
     eng.loadHuyovyeFixture({

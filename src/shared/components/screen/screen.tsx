@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ScreenProps } from "./screen.props";
+import type { ScreenProps } from "./screen.props";
 import { isNonScrolling, offsets, presets } from "./screen.presets";
 
 const isIos = Platform.OS === "ios";
@@ -63,7 +63,10 @@ function ScreenWithScrolling(props: ScreenProps) {
     }
   };
 
-  const onContentSizeChange = (_contentWidth: number, contentHeight: number) => {
+  const onContentSizeChange = (
+    _contentWidth: number,
+    contentHeight: number
+  ) => {
     scrollViewHeight.current = contentHeight;
     updateScrollState();
   };
@@ -83,7 +86,9 @@ function ScreenWithScrolling(props: ScreenProps) {
         <ScrollView
           style={[preset.outer, backgroundStyle]}
           contentContainerStyle={[preset.inner, style]}
-          keyboardShouldPersistTaps={props.keyboardShouldPersistTaps || "handled"}
+          keyboardShouldPersistTaps={
+            props.keyboardShouldPersistTaps || "handled"
+          }
           scrollEnabled={scrollEnabled}
           onContentSizeChange={onContentSizeChange}
         >

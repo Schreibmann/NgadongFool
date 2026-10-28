@@ -1,5 +1,5 @@
 import { CardRanks, CardSuits } from "./cards";
-import { EngineCard, EnginePlayer } from "./types";
+import type { EngineCard, EnginePlayer } from "./types";
 import { firstClockwiseWhere } from "./seats";
 
 /**
@@ -9,7 +9,7 @@ import { firstClockwiseWhere } from "./seats";
 export function canPlaceOnTop(
   top: EngineCard | undefined,
   card: EngineCard,
-  lowestRank: CardRanks = CardRanks.six,
+  lowestRank: CardRanks = CardRanks.six
 ): boolean {
   if (!top) {
     return false;
@@ -28,10 +28,10 @@ export function legalPrepareTargets(
   players: EnginePlayer[],
   _drawerId: number,
   card: EngineCard,
-  lowestRank: CardRanks = CardRanks.six,
+  lowestRank: CardRanks = CardRanks.six
 ): EnginePlayer[] {
   return players.filter(
-    (p) => p.active && canPlaceOnTop(topOf(p), card, lowestRank),
+    (p) => p.active && canPlaceOnTop(topOf(p), card, lowestRank)
   );
 }
 
@@ -40,16 +40,16 @@ export function firstLegalPrepareTarget(
   players: EnginePlayer[],
   drawerId: number,
   card: EngineCard,
-  lowestRank: CardRanks = CardRanks.six,
+  lowestRank: CardRanks = CardRanks.six
 ): EnginePlayer | null {
   return firstClockwiseWhere(players, drawerId, (p) =>
-    canPlaceOnTop(topOf(p), card, lowestRank),
+    canPlaceOnTop(topOf(p), card, lowestRank)
   );
 }
 
 export function isUnbeatableMain(
   card: EngineCard,
-  trump: CardSuits | null,
+  trump: CardSuits | null
 ): boolean {
   if (card.rank !== CardRanks.ace) {
     return false;
@@ -73,7 +73,7 @@ export function canBeat(
   target: EngineCard,
   card: EngineCard,
   trump: CardSuits | null,
-  lowestRank: CardRanks = CardRanks.six,
+  lowestRank: CardRanks = CardRanks.six
 ): boolean {
   // Only the card being beaten can be "unbeatable". Never reject the beater
   // because it itself is a trump/spade ace.
@@ -96,14 +96,11 @@ export function canBeat(
     return cardIsTrump && card.rank > target.rank;
   }
 
-  const sameSuitHigher =
-    card.suit === target.suit && card.rank > target.rank;
+  const sameSuitHigher = card.suit === target.suit && card.rank > target.rank;
   return sameSuitHigher || cardIsTrump;
 }
 
-export function trumpFromLastDeckCard(
-  card: EngineCard,
-): CardSuits | null {
+export function trumpFromLastDeckCard(card: EngineCard): CardSuits | null {
   return card.suit === CardSuits.Spades ? null : card.suit;
 }
 
@@ -117,7 +114,7 @@ export function trumpFromLastDeckCard(
  */
 export function huyovyeDumpScore(
   card: EngineCard,
-  trump: CardSuits | null,
+  trump: CardSuits | null
 ): number {
   if (isUnbeatableMain(card, trump)) {
     return -1000;
@@ -142,7 +139,7 @@ export function huyovyeDumpScore(
 /** Pick the worst-to-keep non-last card; null if hand has ≤1 card. */
 export function pickWorstHuyovyeCard(
   hand: EngineCard[],
-  trump: CardSuits | null,
+  trump: CardSuits | null
 ): EngineCard | null {
   if (hand.length <= 1) {
     return null;

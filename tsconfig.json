@@ -9,34 +9,16 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "skipLibCheck": true,
-    "types": [
-      "jest"
-    ],
+    "types": ["jest"],
     "paths": {
-      "@shared-components/*": [
-        "./src/shared/components/*"
-      ],
-      "@shared-constants": [
-        "./src/shared/constants"
-      ],
-      "@theme": [
-        "./src/shared/theme"
-      ],
-      "@theme/*": [
-        "./src/shared/theme/*"
-      ],
-      "@i18n": [
-        "./src/i18n"
-      ],
-      "@navigation/*": [
-        "./src/navigation/*"
-      ],
-      "@features/*": [
-        "./src/features/*"
-      ],
-      "@assets/*": [
-        "./src/assets/*"
-      ]
+      "@shared-components/*": ["./src/shared/components/*"],
+      "@shared-constants": ["./src/shared/constants"],
+      "@theme": ["./src/shared/theme"],
+      "@theme/*": ["./src/shared/theme/*"],
+      "@i18n": ["./src/i18n"],
+      "@navigation/*": ["./src/navigation/*"],
+      "@features/*": ["./src/features/*"],
+      "@assets/*": ["./src/assets/*"]
     }
   },
   "include": [
@@ -46,9 +28,5 @@
     "src/**/*.tsx",
     "src/types/**/*.d.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "babel.config.js",
-    "metro.config.js"
-  ]
+  "exclude": ["node_modules", "babel.config.js", "metro.config.js"]
 }

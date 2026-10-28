@@ -14,16 +14,16 @@ with those names.
 
 ## 1. Glossary (slang → code terms)
 
-| Slang (original)  | Code term              | Meaning                                             |
-|-------------------|------------------------|-----------------------------------------------------|
-| Пеньки / дубки    | `stumps`               | 2 face-down cards of each player; may not be viewed until the player's hand is empty |
-| Хуёвая            | `huyovye` / `Foul`     | Violation mark on `EnginePlayer.huyovye`. Converted into bad-card gifts in `Phase.Huyovye` |
-| Пидор             | `watchman` / loser     | The player left last; deals next round, "takes the watch" |
-| Вахта / вахтёр    | `watchman`             | Current standing loser from the previous round       |
-| Набор             | `Phase.Prepare`        | Deck-drawing phase before the main game (`"prepare"`) |
-| Козырь            | `trump`                | Suit of the last deck card (`CardSuits \| null`)     |
-| Отбой             | `beaten` / flip        | Completed pile moved into `beaten`; out of play      |
-| Раздача хуёвых    | `Phase.Huyovye`        | Gift phase (`"huyovye"`); batch after Prepare, interrupt from Main |
+| Slang (original) | Code term          | Meaning                                                                                    |
+| ---------------- | ------------------ | ------------------------------------------------------------------------------------------ |
+| Пеньки / дубки   | `stumps`           | 2 face-down cards of each player; may not be viewed until the player's hand is empty       |
+| Хуёвая           | `huyovye` / `Foul` | Violation mark on `EnginePlayer.huyovye`. Converted into bad-card gifts in `Phase.Huyovye` |
+| Пидор            | `watchman` / loser | The player left last; deals next round, "takes the watch"                                  |
+| Вахта / вахтёр   | `watchman`         | Current standing loser from the previous round                                             |
+| Набор            | `Phase.Prepare`    | Deck-drawing phase before the main game (`"prepare"`)                                      |
+| Козырь           | `trump`            | Suit of the last deck card (`CardSuits \| null`)                                           |
+| Отбой            | `beaten` / flip    | Completed pile moved into `beaten`; out of play                                            |
+| Раздача хуёвых   | `Phase.Huyovye`    | Gift phase (`"huyovye"`); batch after Prepare, interrupt from Main                         |
 
 ---
 
@@ -32,8 +32,15 @@ with those names.
 ```ts
 // card.props.ts
 enum CardRanks {
-  six = 6, seven = 7, eight = 8, nine = 9, ten = 10,
-  jack = 11, queen = 12, king = 13, ace = 14,
+  six = 6,
+  seven = 7,
+  eight = 8,
+  nine = 9,
+  ten = 10,
+  jack = 11,
+  queen = 12,
+  king = 13,
+  ace = 14,
 }
 enum CardSuits {
   Diamonds = "diamonds",
@@ -44,17 +51,20 @@ enum CardSuits {
 // Lowest rank in the 36-card deck is CardRanks.six (MIN_RANK conceptually).
 
 // types.ts
-interface EngineCard { rank: CardRanks; suit: CardSuits; }
+interface EngineCard {
+  rank: CardRanks;
+  suit: CardSuits;
+}
 
 interface EnginePlayer {
   id: number;
   name: string;
   isCPU: boolean;
-  hand: EngineCard[];     // face-up; hand[0] is the TOP card
-  stumps: EngineCard[];   // face-down
+  hand: EngineCard[]; // face-up; hand[0] is the TOP card
+  stumps: EngineCard[]; // face-down
   stumpsRevealed: boolean;
-  active: boolean;        // false after exiting
-  huyovye: number;        // accumulated fouls awaiting gift conversion
+  active: boolean; // false after exiting
+  huyovye: number; // accumulated fouls awaiting gift conversion
 }
 
 enum Phase {
@@ -65,7 +75,10 @@ enum Phase {
   Ended = "ended",
 }
 
-interface HuyovyeObligation { giverId: number; receiverId: number; }
+interface HuyovyeObligation {
+  giverId: number;
+  receiverId: number;
+}
 
 interface GameState {
   phase: Phase;
@@ -77,10 +90,10 @@ interface GameState {
   watchmanId: number | null;
   previousWatchmanId: number | null;
   activePlayerId: number;
-  trump: CardSuits | null;          // null = no-trump (бескозырка)
-  prepareHeld: EngineCard | null;   // drawn prepare card not yet placed/kept
-  current: EngineCard[];            // main pile; index 0 is the BOTTOM
-  beaten: EngineCard[];             // discarded piles (flat)
+  trump: CardSuits | null; // null = no-trump (бескозырка)
+  prepareHeld: EngineCard | null; // drawn prepare card not yet placed/kept
+  current: EngineCard[]; // main pile; index 0 is the BOTTOM
+  beaten: EngineCard[]; // discarded piles (flat)
   discardPendingFlip: boolean;
   lastPlayedById: number | null;
   tookLastDeckCardId: number | null;
@@ -320,25 +333,25 @@ regardless of how it got clear.
 
 ## 10. Full foul table (`Foul` enum)
 
-| #  | `Foul` id                      | Violation                                                                 |
-|----|--------------------------------|---------------------------------------------------------------------------|
-| P1 | LookedOwnStumpsEarly           | Viewed own stumps while hand not empty (before "Беру пни")                 |
-| P2 | LookedNeighborStumps           | Viewed another player's stumps                                             |
-| P3 | DrewOutOfTurn                  | Drew from the deck out of turn                                             |
-| P4 | FailedToDumpLegal              | Did not place on a mandatory adjacency target / kept while legal existed   |
-| P5 | DrewTwoAndSawSecond            | Drew 2 cards from the deck and saw the second                              |
-| P6 | DumpedNotFirstClockwise        | Placed on a candidate other than the first clockwise one                   |
-| P7 | ReceivedLowestOnHighest        | Your top ace received a six from another player (six-on-ace)               |
-| P8 | GaveAwayLastPrepare            | Gave away / placed the last card of your hand                              |
-| P9 | PlacedLastDeckCard             | Placed/gave the last deck card to anyone                                   |
-| P10| NamedTrumpAloud                | Said the trump suit aloud while still an active player                     |
-| P11| FlippedOthersDiscard           | Flipped a discard you did not complete with your own last placement        |
-| P12| PlayedOutOfTurn                | Acted (played/led) out of turn in Main                                     |
-| P13| IllegalBeat                    | Beat with a wrong card                                                     |
-| P14| TookFromUnflippedDiscard       | Took from a pile that was not yet flipped                                  |
-| P15| ExtraCardPastN                 | Placed a card beyond the active-player count in a pending pile             |
-| P16| LookedStumpsWithoutAnnounce    | Viewed stumps without having said "Беру пни!"                              |
-| P17| WatchmanAnswerFail             | Watchman failed to answer "Кто на вахте?" as many times as asked           |
+| #   | `Foul` id                   | Violation                                                                |
+| --- | --------------------------- | ------------------------------------------------------------------------ |
+| P1  | LookedOwnStumpsEarly        | Viewed own stumps while hand not empty (before "Беру пни")               |
+| P2  | LookedNeighborStumps        | Viewed another player's stumps                                           |
+| P3  | DrewOutOfTurn               | Drew from the deck out of turn                                           |
+| P4  | FailedToDumpLegal           | Did not place on a mandatory adjacency target / kept while legal existed |
+| P5  | DrewTwoAndSawSecond         | Drew 2 cards from the deck and saw the second                            |
+| P6  | DumpedNotFirstClockwise     | Placed on a candidate other than the first clockwise one                 |
+| P7  | ReceivedLowestOnHighest     | Your top ace received a six from another player (six-on-ace)             |
+| P8  | GaveAwayLastPrepare         | Gave away / placed the last card of your hand                            |
+| P9  | PlacedLastDeckCard          | Placed/gave the last deck card to anyone                                 |
+| P10 | NamedTrumpAloud             | Said the trump suit aloud while still an active player                   |
+| P11 | FlippedOthersDiscard        | Flipped a discard you did not complete with your own last placement      |
+| P12 | PlayedOutOfTurn             | Acted (played/led) out of turn in Main                                   |
+| P13 | IllegalBeat                 | Beat with a wrong card                                                   |
+| P14 | TookFromUnflippedDiscard    | Took from a pile that was not yet flipped                                |
+| P15 | ExtraCardPastN              | Placed a card beyond the active-player count in a pending pile           |
+| P16 | LookedStumpsWithoutAnnounce | Viewed stumps without having said "Беру пни!"                            |
+| P17 | WatchmanAnswerFail          | Watchman failed to answer "Кто на вахте?" as many times as asked         |
 
 Main fouls convert to immediate Huyovye gifts (§6.2). Prepare fouls batch after
 the deck is empty (§6.1).
@@ -347,18 +360,18 @@ the deck is empty (§6.1).
 
 ## 11. Resolved interpretations (config)
 
-| Config key             | Default        | Alternatives considered and rejected for default |
-|------------------------|----------------|--------------------------------------------------|
-| `sixOnAce`             | `mandatory` + P7 to ace owner | optional placement (rejected) |
-| `deckSize`             | `36` → lowest rank = six | `52` → lowest rank = two; the lowest card inherits the six's role: wraps onto an ace in Prepare (P7), never beats an ace in Main |
-| `sixOnAceRestriction`  | `"off"`        | `"pip_six_blocks_all"` |
-| `trumpFromLastCard`    | `"last_card_suit"` | `"previous_card_suit"`, `"none"` |
-| `takeAction`           | `"bottom_only"` | `"whole_pile"` (rejected) |
-| `sneakyLead`           | `"off"`        | `"after_last_giver"` |
-| `discardSizeOnExit`    | `"recount"`    | `"frozen_after_first_exit"` |
-| `beatSameSuit`         | `"strictly_higher"` | `"equal_beats"` |
-| `roundDefinition`      | `"discard_cycle"` | `"full_turn_circle"` |
-| `mainFoulHuyovye`      | `"immediate_interrupt"` | accumulate-until-next-batch (rejected) |
+| Config key            | Default                       | Alternatives considered and rejected for default                                                                                 |
+| --------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `sixOnAce`            | `mandatory` + P7 to ace owner | optional placement (rejected)                                                                                                    |
+| `deckSize`            | `36` → lowest rank = six      | `52` → lowest rank = two; the lowest card inherits the six's role: wraps onto an ace in Prepare (P7), never beats an ace in Main |
+| `sixOnAceRestriction` | `"off"`                       | `"pip_six_blocks_all"`                                                                                                           |
+| `trumpFromLastCard`   | `"last_card_suit"`            | `"previous_card_suit"`, `"none"`                                                                                                 |
+| `takeAction`          | `"bottom_only"`               | `"whole_pile"` (rejected)                                                                                                        |
+| `sneakyLead`          | `"off"`                       | `"after_last_giver"`                                                                                                             |
+| `discardSizeOnExit`   | `"recount"`                   | `"frozen_after_first_exit"`                                                                                                      |
+| `beatSameSuit`        | `"strictly_higher"`           | `"equal_beats"`                                                                                                                  |
+| `roundDefinition`     | `"discard_cycle"`             | `"full_turn_circle"`                                                                                                             |
+| `mainFoulHuyovye`     | `"immediate_interrupt"`       | accumulate-until-next-batch (rejected)                                                                                           |
 
 ### Explicitly rejected readings
 

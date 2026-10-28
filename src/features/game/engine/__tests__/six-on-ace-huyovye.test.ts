@@ -1,6 +1,6 @@
 import { CardRanks, CardSuits } from "../cards";
 import { GameEngine } from "../engine";
-import { EnginePlayer, Foul, Phase, SeatConfig } from "../types";
+import { type EnginePlayer, Foul, Phase, type SeatConfig } from "../types";
 
 const seats3: SeatConfig[] = [
   { id: 1, name: "A", isCPU: true },
@@ -11,7 +11,7 @@ const seats3: SeatConfig[] = [
 function player(
   id: number,
   hand: EnginePlayer["hand"],
-  opts?: Partial<EnginePlayer>,
+  opts?: Partial<EnginePlayer>
 ): EnginePlayer {
   return {
     id,
@@ -115,7 +115,7 @@ describe("huyovye timing with resumeMainAfterHuyovye", () => {
             { rank: CardRanks.six, suit: CardSuits.Clubs },
             { rank: CardRanks.seven, suit: CardSuits.Clubs },
           ],
-          { isCPU: true },
+          { isCPU: true }
         ),
         player(
           3,
@@ -123,7 +123,7 @@ describe("huyovye timing with resumeMainAfterHuyovye", () => {
             { rank: CardRanks.eight, suit: CardSuits.Diamonds },
             { rank: CardRanks.nine, suit: CardSuits.Diamonds },
           ],
-          { isCPU: false },
+          { isCPU: false }
         ),
       ],
     });
@@ -167,7 +167,7 @@ describe("huyovye timing with resumeMainAfterHuyovye", () => {
             { rank: CardRanks.six, suit: CardSuits.Diamonds },
             { rank: CardRanks.seven, suit: CardSuits.Diamonds },
           ],
-          { isCPU: true },
+          { isCPU: true }
         ),
         player(
           2,
@@ -175,7 +175,7 @@ describe("huyovye timing with resumeMainAfterHuyovye", () => {
             { rank: CardRanks.eight, suit: CardSuits.Spades },
             { rank: CardRanks.nine, suit: CardSuits.Spades },
           ],
-          { isCPU: true },
+          { isCPU: true }
         ),
         player(
           3,
@@ -183,7 +183,7 @@ describe("huyovye timing with resumeMainAfterHuyovye", () => {
             { rank: CardRanks.six, suit: CardSuits.Clubs },
             { rank: CardRanks.jack, suit: CardSuits.Hearts },
           ],
-          { isCPU: false },
+          { isCPU: false }
         ),
       ],
     });

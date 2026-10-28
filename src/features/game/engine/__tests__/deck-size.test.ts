@@ -2,7 +2,7 @@ import { createDeck, createDeck36 } from "../deck";
 import { CardRanks, CardSuits, lowestRankOf } from "../cards";
 import { canBeat, canPlaceOnTop, firstLegalPrepareTarget } from "../rules";
 import { GameEngine } from "../engine";
-import { EnginePlayer, Foul, Phase, SeatConfig } from "../types";
+import { type EnginePlayer, Foul, Phase, type SeatConfig } from "../types";
 import { drainPrepare } from "./prepare-helpers";
 
 const seats3: SeatConfig[] = [
@@ -14,7 +14,7 @@ const seats3: SeatConfig[] = [
 function player(
   id: number,
   hand: EnginePlayer["hand"],
-  opts?: Partial<EnginePlayer>,
+  opts?: Partial<EnginePlayer>
 ): EnginePlayer {
   return {
     id,
@@ -60,8 +60,12 @@ describe("deck 52: rules with lowestRank = two", () => {
 
   it("two wraps onto ace; three onto two; two not onto king", () => {
     expect(canPlaceOnTop(ace, two, CardRanks.two)).toBe(true);
-    expect(canPlaceOnTop(two, card(CardRanks.three, CardSuits.Clubs), CardRanks.two)).toBe(true);
-    expect(canPlaceOnTop(card(CardRanks.king, CardSuits.Clubs), two, CardRanks.two)).toBe(false);
+    expect(
+      canPlaceOnTop(two, card(CardRanks.three, CardSuits.Clubs), CardRanks.two)
+    ).toBe(true);
+    expect(
+      canPlaceOnTop(card(CardRanks.king, CardSuits.Clubs), two, CardRanks.two)
+    ).toBe(false);
     // Default (36-deck) semantics unchanged: a two has no wrap.
     expect(canPlaceOnTop(ace, two)).toBe(false);
   });
@@ -79,9 +83,7 @@ describe("deck 52: rules with lowestRank = two", () => {
       player(2, [card(CardRanks.king, CardSuits.Clubs)], { isCPU: true }),
       player(3, [card(CardRanks.seven, CardSuits.Diamonds)], { isCPU: false }),
     ];
-    expect(
-      firstLegalPrepareTarget(players, 3, two, CardRanks.two)?.id,
-    ).toBe(1);
+    expect(firstLegalPrepareTarget(players, 3, two, CardRanks.two)?.id).toBe(1);
     // Default (36-deck) semantics: no wrap for a two.
     expect(firstLegalPrepareTarget(players, 3, two)).toBeNull();
   });
@@ -125,8 +127,14 @@ describe("deck 52: engine", () => {
       deck: [card(CardRanks.nine, CardSuits.Diamonds)],
       players: [
         player(1, [ace], { isCPU: true, name: "A" }),
-        player(2, [card(CardRanks.king, CardSuits.Clubs)], { isCPU: true, name: "B" }),
-        player(3, [card(CardRanks.eight, CardSuits.Spades)], { isCPU: false, name: "C" }),
+        player(2, [card(CardRanks.king, CardSuits.Clubs)], {
+          isCPU: true,
+          name: "B",
+        }),
+        player(3, [card(CardRanks.eight, CardSuits.Spades)], {
+          isCPU: false,
+          name: "C",
+        }),
       ],
     });
 

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { StyleSheet, Text, View, ViewStyle } from "react-native";
+import { StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import Animated, {
   useAnimatedStyle,
@@ -8,7 +8,7 @@ import Animated, {
   interpolate,
   Easing,
 } from "react-native-reanimated";
-import { CardProps } from "./card.props";
+import type { CardProps } from "./card.props";
 import { getCardImageSource } from "./card-images";
 import { CardWidth, cardHeight } from "@shared-constants";
 import { color, typography } from "@theme";
@@ -23,7 +23,7 @@ const SHADOW: ViewStyle = {
 
 const propsAreEqual = (
   prevProps: Readonly<CardProps>,
-  nextProps: Readonly<CardProps>,
+  nextProps: Readonly<CardProps>
 ): boolean =>
   prevProps.rank === nextProps.rank &&
   prevProps.suit === nextProps.suit &&
@@ -35,6 +35,9 @@ function CardComponent(props: CardProps) {
   const { opened, isStump, rank, suit, animation = true } = props;
   const flip = useSharedValue(animation ? 0 : 1);
 
+  // Re-run whenever the rendered card identity changes so a recycled
+  // component re-plays the flip, not only when `animation` toggles.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional extra deps
   React.useEffect(() => {
     if (animation) {
       flip.value = 0;

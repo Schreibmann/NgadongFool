@@ -1,10 +1,7 @@
-import { EnginePlayer, PlayerId } from "./types";
+import type { EnginePlayer, PlayerId } from "./types";
 
 /** Seats ordered as stored; clockwise means increasing index, wrapping. */
-export function playerIndex(
-  players: EnginePlayer[],
-  id: PlayerId,
-): number {
+export function playerIndex(players: EnginePlayer[], id: PlayerId): number {
   return players.findIndex((p) => p.id === id);
 }
 
@@ -15,7 +12,7 @@ export function activePlayers(players: EnginePlayer[]): EnginePlayer[] {
 export function nextClockwiseId(
   players: EnginePlayer[],
   fromId: PlayerId,
-  opts?: { activeOnly?: boolean },
+  opts?: { activeOnly?: boolean }
 ): PlayerId {
   const activeOnly = opts?.activeOnly ?? true;
   const list = activeOnly ? activePlayers(players) : players;
@@ -36,7 +33,7 @@ export function nextClockwiseId(
 export function clockwiseFromExclusive(
   players: EnginePlayer[],
   fromId: PlayerId,
-  opts?: { activeOnly?: boolean },
+  opts?: { activeOnly?: boolean }
 ): EnginePlayer[] {
   const activeOnly = opts?.activeOnly ?? true;
   const list = activeOnly ? activePlayers(players) : players;
@@ -55,7 +52,7 @@ export function clockwiseFromExclusive(
 export function firstClockwiseWhere(
   players: EnginePlayer[],
   fromId: PlayerId,
-  pred: (p: EnginePlayer) => boolean,
+  pred: (p: EnginePlayer) => boolean
 ): EnginePlayer | null {
   for (const p of clockwiseFromExclusive(players, fromId)) {
     if (pred(p)) {

@@ -1,5 +1,5 @@
-import { CardRanks, CardSuits, DeckSize } from "./cards";
-import { EngineCard } from "./types";
+import { CardRanks, CardSuits, type DeckSize } from "./cards";
+import type { EngineCard } from "./types";
 
 const RANKS_36: CardRanks[] = [
   CardRanks.six,
@@ -58,7 +58,7 @@ export function createRng(seed: number): () => number {
 
 export function shuffleDeck(
   deck: EngineCard[],
-  rng: () => number = Math.random,
+  rng: () => number = Math.random
 ): EngineCard[] {
   const copy = [...deck];
   for (let i = copy.length - 1; i > 0; i--) {

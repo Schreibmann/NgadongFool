@@ -1,5 +1,5 @@
-import { StyleProp, ViewStyle } from "react-native";
-import { KeyboardOffsets, ScreenPresets } from "./screen.presets";
+import type { StyleProp, ViewStyle } from "react-native";
+import type { KeyboardOffsets, ScreenPresets } from "./screen.presets";
 
 export interface ScreenProps {
   children?: React.ReactNode;

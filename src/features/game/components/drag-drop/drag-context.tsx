@@ -1,12 +1,12 @@
 import * as React from "react";
-import { Platform, StyleSheet, View, ViewStyle } from "react-native";
+import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   type SharedValue,
 } from "react-native-reanimated";
 import { Card as CardView } from "../card/card";
-import { Card } from "../card/card.props";
+import type { Card } from "../card/card.props";
 
 export type DropHandler = (card: Card) => void;
 
@@ -35,7 +35,7 @@ interface DragContextValue {
   registerDropZone: (zone: DropZoneRegistration) => () => void;
   findDropZoneAt: (
     pageX: number,
-    pageY: number,
+    pageY: number
   ) => Promise<DropZoneRegistration | null>;
   beginOverlayDrag: (state: OverlayDragState) => void;
   moveOverlayDrag: (dx: number, dy: number) => void;
@@ -64,7 +64,7 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
   const findDropZoneAt = React.useCallback(
     async (pageX: number, pageY: number) => {
       const zones = Array.from(zonesRef.current.values()).filter(
-        (zone) => !zone.disabled,
+        (zone) => !zone.disabled
       );
       const layouts = await Promise.all(zones.map((zone) => zone.measure()));
       let best: DropZoneRegistration | null = null;
@@ -90,21 +90,24 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
       }
       return best;
     },
-    [],
+    []
   );
 
-  const beginOverlayDrag = React.useCallback((state: OverlayDragState) => {
-    dx.value = 0;
-    dy.value = 0;
-    setOverlay(state);
-  }, [dx, dy]);
+  const beginOverlayDrag = React.useCallback(
+    (state: OverlayDragState) => {
+      dx.value = 0;
+      dy.value = 0;
+      setOverlay(state);
+    },
+    [dx, dy]
+  );
 
   const moveOverlayDrag = React.useCallback(
     (nextDx: number, nextDy: number) => {
       dx.value = nextDx;
       dy.value = nextDy;
     },
-    [dx, dy],
+    [dx, dy]
   );
 
   const endOverlayDrag = React.useCallback(() => {
@@ -125,7 +128,7 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
       beginOverlayDrag,
       moveOverlayDrag,
       endOverlayDrag,
-    ],
+    ]
   );
 
   return (
@@ -152,10 +155,7 @@ const GhostOverlay = React.memo(function GhostOverlay({
   // One sweet spot: React renders only on drag begin/end; pointermove updates
   // mutate shared values consumed by this animated transform on the UI thread.
   const transformStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: dx.value },
-      { translateY: dy.value },
-    ] as const,
+    transform: [{ translateX: dx.value }, { translateY: dy.value }] as const,
   }));
   if (overlay == null) {
     return null;

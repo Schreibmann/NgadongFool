@@ -5,7 +5,7 @@ import { SCREENS } from "@shared-constants";
 import { LightTheme, DarkTheme } from "@theme/navigation-themes";
 import { WelcomeScreen } from "@features/welcome/welcome-screen";
 import { PlaygroundScreen } from "@features/game/playground-screen";
-import { RootStackParamList } from "./types";
+import type { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

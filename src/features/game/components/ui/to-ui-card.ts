@@ -1,5 +1,5 @@
-import { Card, CardProps } from "../../components/card/card.props";
-import { EngineCard } from "../../engine";
+import type { Card, CardProps } from "../../components/card/card.props";
+import type { EngineCard } from "../../engine";
 
 /** Engine card → UI card prop shape. */
 export function toUiCard(card: EngineCard, isStump = false): Card {

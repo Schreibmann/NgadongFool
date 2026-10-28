@@ -1,5 +1,5 @@
 import { useCallback, useRef, useSyncExternalStore } from "react";
-import { GameEngine, StartOptions } from "./engine";
+import { GameEngine, type StartOptions } from "./engine";
 
 function seatsKey(options: StartOptions): string {
   return `${options.seed ?? "r"}:${options.sessionNonce ?? "0"}:${options.deckSize ?? 36}:${options.watchmanId ?? "x"}:${options.seats
@@ -24,13 +24,13 @@ export function useGameEngine(options: StartOptions): {
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => engine.subscribe(onStoreChange),
-    [engine],
+    [engine]
   );
 
   const state = useSyncExternalStore(
     subscribe,
     engine.getSnapshot,
-    engine.getSnapshot,
+    engine.getSnapshot
   );
 
   return { engine, state };
