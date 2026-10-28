@@ -6,20 +6,9 @@ import {
   GameState,
   Listener,
   Phase,
-  SeatConfig,
+  StartOptions,
 } from "./types";
-import {
-  cardKey,
-  cardsEqual,
-  createDeck36,
-  createRng,
-  shuffleDeck,
-} from "./deck";
-
-/** Chance a CPU intentionally fouls / misplays instead of the smart legal move. */
-const CPU_MISTAKE_RATE = 0.1;
-/** Identical Main fingerprints in a row before forcing takeBottom / flip. */
-const MAIN_LOOP_STREAK_LIMIT = 28;
+import { cardsEqual, createRng } from "./deck";
 import {
   activePlayers,
   firstClockwiseWhere,
@@ -33,6 +22,8 @@ import {
   topOf,
   trumpFromLastDeckCard,
 } from "./rules";
+import { buildInitialGameState, dealStage } from "./phases/dealing";
+import { CpuDirector, GameCpuHost } from "./cpu/director";
 
 /*
  * Owner-confirmed interpretations (2026-10-27):
@@ -44,15 +35,6 @@ import {
  * - Main-phase fouls convert to хуёвые card dumps: enqueue obligations and pause
  *   Main → Huyovye until drained, then resume Main (never orphan counters).
  */
-
-export interface StartOptions {
-  /** UI-only: forces a fresh GameEngine when remounting with the same seats. */
-  sessionNonce?: number;
-  seats: SeatConfig[];
-  /** Previous watchman becomes dealer; omit to pick randomly. */
-  watchmanId?: number | null;
-  seed?: number;
-}
 
 function cloneCard(card: EngineCard): EngineCard {
   return { rank: card.rank, suit: card.suit };
@@ -70,21 +52,54 @@ export class GameEngine {
   private state: GameState;
   private listeners = new Set<Listener>();
   private rng: () => number;
-  /** Re-entrancy guard so giveHuyovyeCard → runCpuHuyovye cannot nest. */
-  private cpuHuyovyeRunning = false;
-  private mainLoopFingerprint: string | null = null;
-  private mainLoopStreak = 0;
+  private readonly cpu: CpuDirector;
 
   constructor(options: StartOptions) {
     if (options.seats.length < 2) {
       throw new Error("need at least 2 players");
     }
     this.rng =
-      options.seed !== undefined
-        ? createRng(options.seed)
-        : Math.random;
-    this.state = this.buildInitial(options);
-    this.deal();
+      options.seed !== undefined ? createRng(options.seed) : Math.random;
+    this.cpu = new CpuDirector(this.buildCpuHost(), this.rng);
+    this.state = buildInitialGameState(options, this.rng);
+    this.state = dealStage(this.state, this.rng);
+    this.emit();
+  }
+
+  /**
+   * Host adapter: the CPU director acts only through the engine's rule-checked
+   * API; the engine stays the single arbiter of fouls and turn advancement.
+   */
+  private buildCpuHost(): GameCpuHost {
+    const self = this;
+    return {
+      findPlayer: (playerId) => findPlayer(self.state, playerId),
+      getState: () => self.state,
+      updateState: (patch, message) => {
+        self.state = { ...self.state, ...patch };
+        if (message !== undefined) {
+          self.state = { ...self.state, message };
+        }
+        self.emit();
+      },
+      cascadeOwnTops: (playerId) => self.cascadeOwnTops(playerId),
+      drawPrepare: (playerId) => self.drawPrepare(playerId),
+      placePrepare: (playerId, targetId) =>
+        self.placePrepare(playerId, targetId),
+      keepPrepare: (playerId) => self.keepPrepare(playerId),
+      playMain: (playerId, card) => self.playMain(playerId, card),
+      takeBottom: (playerId) => self.takeBottom(playerId),
+      flipDiscard: (playerId) => self.flipDiscard(playerId),
+      claimStumps: (playerId) => self.claimStumps(playerId),
+      exitGame: (playerId) => self.exitGame(playerId),
+      giveHuyovyeCard: (giverId, receiverId, card) =>
+        self.giveHuyovyeCard(giverId, receiverId, card),
+      dropHuyovyeObligation: (giverId, receiverId) =>
+        self.dropHuyovyeObligation(giverId, receiverId),
+      finishHuyovye: () => self.finishHuyovye(),
+      skipMainTurn: (fromPlayerId) => self.skipMainTurn(fromPlayerId),
+      parkMainFlipper: (flipperId) => self.parkMainFlipper(flipperId),
+    };
   }
 
   subscribe = (listener: Listener): (() => void) => {
@@ -112,105 +127,6 @@ export class GameEngine {
       watchmanAskCounts: { ...frozen.watchmanAskCounts },
     };
     this.listeners.forEach((l) => l());
-  }
-
-  private buildInitial(options: StartOptions): GameState {
-    const players: EnginePlayer[] = options.seats.map((s) => ({
-      id: s.id,
-      name: s.name,
-      isCPU: s.isCPU,
-      hand: [] as EngineCard[],
-      stumps: [] as EngineCard[],
-      huyovye: 0,
-      active: true,
-      stumpsRevealed: false,
-    }));
-
-    let dealerId: number;
-    let watchmanId: number | null =
-      options.watchmanId === undefined ? null : options.watchmanId;
-
-    if (watchmanId != null && players.some((p) => p.id === watchmanId)) {
-      dealerId = watchmanId;
-    } else {
-      const idx = Math.floor(this.rng() * players.length);
-      dealerId = players[idx].id;
-      watchmanId = dealerId;
-    }
-
-    return {
-      phase: Phase.Deal,
-      deck: [],
-      players,
-      dealerId,
-      watchmanId,
-      previousWatchmanId: null,
-      activePlayerId: dealerId,
-      trump: null,
-      current: [],
-      beaten: [],
-      discardPendingFlip: false,
-      lastPlayedById: null,
-      tookLastDeckCardId: null,
-      prepareHeld: null,
-      roundJustEnded: false,
-      huyovyeQueue: [],
-      resumeMainAfterHuyovye: false,
-      pendingWatchmanHandoff: false,
-      watchmanAskCounts: {},
-      lastFoul: null,
-      message: null,
-      initialPlayerCount: players.length,
-    };
-  }
-
-  /** Full deal: 2 stumps + 1 face-up each, starting clockwise after dealer. */
-  private deal(): void {
-    let deck = shuffleDeck(createDeck36(), this.rng);
-    const orderIds: number[] = [];
-    let cursor = this.state.dealerId;
-    for (let i = 0; i < this.state.players.length; i++) {
-      cursor = nextClockwiseId(this.state.players, cursor, {
-        activeOnly: false,
-      });
-      orderIds.push(cursor);
-    }
-
-    const players = this.state.players.map((p) => ({
-      ...p,
-      hand: [] as EngineCard[],
-      stumps: [] as EngineCard[],
-    }));
-
-    const take = (): EngineCard => {
-      const card = deck[0];
-      deck = deck.slice(1);
-      return card;
-    };
-
-    for (const id of orderIds) {
-      const p = players.find((x) => x.id === id);
-      if (!p) continue;
-      p.stumps.push(take(), take());
-    }
-    for (const id of orderIds) {
-      const p = players.find((x) => x.id === id);
-      if (!p) continue;
-      p.hand.push(take());
-    }
-
-    const firstActive = nextClockwiseId(players, this.state.dealerId);
-
-    this.state = {
-      ...this.state,
-      phase: Phase.Prepare,
-      deck,
-      players,
-      activePlayerId: firstActive,
-      prepareHeld: null,
-      message: "Раздача завершена. Набор.",
-    };
-    this.emit();
   }
 
   private awardFoul(playerId: number, foul: Foul): void {
@@ -650,52 +566,26 @@ export class GameEngine {
   }
 
   /**
-   * CPU seats fulfill pending huyovye gifts with the worst-to-keep heuristic.
-   * Obligations a giver cannot legally fill (only last card left) are dropped
-   * so the phase cannot deadlock (same rule for humans via giveHuyovyeCard).
+   * CPU seats fulfill pending huyovye gifts with the worst-to-keep heuristic
+   * (delegated to the CPU director; engine stays the rules arbiter).
    */
   runCpuHuyovye(): void {
-    if (this.state.phase !== Phase.Huyovye) return;
-    if (this.cpuHuyovyeRunning) return;
-    this.cpuHuyovyeRunning = true;
-    try {
-      let guard = 200;
-      while (guard-- > 0) {
-        const next = this.state.huyovyeQueue.find((q) => {
-          const g = findPlayer(this.state, q.giverId);
-          return g.isCPU;
-        });
-        if (!next) break;
+    this.cpu.runHuyovye();
+  }
 
-        const giver = findPlayer(this.state, next.giverId);
-        const card = pickWorstHuyovyeCard(giver.hand, this.state.trump);
-        if (!card) {
-          // Cannot give without last card — drop this queue entry only.
-          const dropAt = this.state.huyovyeQueue.indexOf(next);
-          const dropped =
-            dropAt < 0
-              ? this.state.huyovyeQueue
-              : this.state.huyovyeQueue.filter((_, i) => i !== dropAt);
-          this.state = {
-            ...this.state,
-            huyovyeQueue: dropped,
-            message: `${giver.name} не может отдать хуёвую (последняя)`,
-          };
-          this.emit();
-          continue;
-        }
-        this.giveHuyovyeCard(next.giverId, next.receiverId, card);
-      }
-
-      if (
-        this.state.phase === Phase.Huyovye &&
-        this.state.huyovyeQueue.length === 0
-      ) {
-        this.onHuyovyeDrained();
-      }
-    } finally {
-      this.cpuHuyovyeRunning = false;
-    }
+  /** Drop one owed gift: giver holds only his last card (never given, R4). */
+  dropHuyovyeObligation(giverId: number, receiverId: number): void {
+    const giver = findPlayer(this.state, giverId);
+    const queue = this.state.huyovyeQueue.filter((q) => {
+      return !(q.giverId === giverId && q.receiverId === receiverId);
+    });
+    if (queue.length === this.state.huyovyeQueue.length) return;
+    this.state = {
+      ...this.state,
+      huyovyeQueue: queue,
+      message: `${giver.name} не может отдать хуёвую (последняя)`,
+    };
+    this.emit();
   }
 
   /** Start / resume main once the huyovye queue is empty (no-op if gifts remain). */
@@ -1229,188 +1119,16 @@ export class GameEngine {
     if (!player.isCPU || !player.active) return;
 
     if (this.state.phase === Phase.Prepare) {
-      this.cpuPrepare(id);
+      this.cpu.runPrepareTurn(id);
       return;
     }
     if (this.state.phase === Phase.Main) {
-      this.cpuMain(id);
+      this.cpu.runMainTurn(id);
     }
-  }
-
-  private cpuShouldMistake(): boolean {
-    return this.rng() < CPU_MISTAKE_RATE;
-  }
-
-  /**
-   * Board-only fingerprint (no activePlayerId) so A↔B no-op turn spins still
-   * accumulate a streak and trigger a forced takeBottom.
-   */
-  private mainStateFingerprint(): string {
-    const hands = this.state.players
-      .map((p) => {
-        const keys = p.hand.map(cardKey).sort().join(",");
-        return `${p.id}:${p.active ? 1 : 0}:${keys}`;
-      })
-      .join("|");
-    const current = this.state.current.map(cardKey).join(",");
-    return [
-      this.state.discardPendingFlip ? 1 : 0,
-      this.state.lastPlayedById ?? "n",
-      current,
-      hands,
-    ].join(";");
-  }
-
-  /** Detect Main soft-locks (e.g. two CPUs forever trading the same cards). */
-  private noteMainFingerprintAndShouldBreak(): boolean {
-    const fp = this.mainStateFingerprint();
-    if (fp === this.mainLoopFingerprint) {
-      this.mainLoopStreak += 1;
-    } else {
-      this.mainLoopFingerprint = fp;
-      this.mainLoopStreak = 1;
-    }
-    return this.mainLoopStreak >= MAIN_LOOP_STREAK_LIMIT;
-  }
-
-  private resetMainLoopGuard(): void {
-    this.mainLoopFingerprint = null;
-    this.mainLoopStreak = 0;
-  }
-
-  private cpuPrepare(playerId: number): void {
-    this.cascadeOwnTops(playerId);
-
-    if (!this.state.prepareHeld) {
-      if (this.state.deck.length === 0) return;
-      this.drawPrepare(playerId);
-    }
-
-    const held = this.state.prepareHeld;
-    if (!held) return;
-
-    const target = firstLegalPrepareTarget(
-      this.state.players,
-      playerId,
-      held,
-    );
-    if (target) {
-      // Rare mistake: keep while a mandatory dump exists (P4).
-      if (this.cpuShouldMistake()) {
-        this.keepPrepare(playerId);
-        return;
-      }
-      this.placePrepare(playerId, target.id);
-      // after place, draw again if still this player's prepare turn
-      if (
-        this.state.phase === Phase.Prepare &&
-        this.state.activePlayerId === playerId &&
-        !this.state.prepareHeld
-      ) {
-        this.cpuPrepare(playerId);
-      }
-      return;
-    }
-    this.keepPrepare(playerId);
-  }
-
-  private cpuMain(playerId: number): void {
-    const breakLoop = this.noteMainFingerprintAndShouldBreak();
-
-    if (this.state.discardPendingFlip) {
-      const flipperId = this.state.lastPlayedById;
-      if (flipperId == null) {
-        this.advanceMainTurn(playerId);
-        return;
-      }
-      const flipper = findPlayer(this.state, flipperId);
-      if (flipper.isCPU && flipper.active) {
-        this.flipDiscard(flipperId);
-        this.resetMainLoopGuard();
-        return;
-      }
-      // Human must flip — park active seat on them so UI scheduling unblocks.
-      if (this.state.activePlayerId !== flipperId) {
-        this.state = {
-          ...this.state,
-          activePlayerId: flipperId,
-          message: "Отбой — переверни",
-        };
-        this.emit();
-      }
-      return;
-    }
-
-    const player = findPlayer(this.state, playerId);
-
-    // Empty hand + pile: cannot beat → take bottom (never spin advanceMainTurn).
-    if (player.hand.length === 0) {
-      if (this.state.current.length === 0) {
-        if (player.stumps.length > 0) {
-          this.claimStumps(playerId);
-          this.resetMainLoopGuard();
-          return;
-        }
-        this.exitGame(playerId);
-        this.resetMainLoopGuard();
-        return;
-      }
-      this.takeBottom(playerId);
-      this.resetMainLoopGuard();
-      return;
-    }
-
-    if (this.state.current.length === 0) {
-      const lead = this.pickLead(player);
-      if (lead) {
-        this.playMain(playerId, lead);
-        return;
-      }
-      this.advanceMainTurn(playerId);
-      return;
-    }
-
-    // Anti-loop: force take even when a beater exists.
-    if (breakLoop) {
-      this.takeBottom(playerId);
-      this.resetMainLoopGuard();
-      return;
-    }
-
-    const target = this.state.current[this.state.current.length - 1];
-    const trump = this.state.trump;
-    const beaters = player.hand
-      .filter((c) => canBeat(target, c, trump))
-      .sort((a, b) => {
-        const aTrump = trump != null && a.suit === trump ? 1 : 0;
-        const bTrump = trump != null && b.suit === trump ? 1 : 0;
-        if (aTrump !== bTrump) return aTrump - bTrump;
-        return a.rank - b.rank;
-      });
-
-    if (beaters[0]) {
-      // Rare mistake: take or play a non-beater instead of the smart beat.
-      if (this.cpuShouldMistake()) {
-        const nonBeaters = player.hand.filter(
-          (c) => !canBeat(target, c, trump),
-        );
-        if (nonBeaters.length > 0 && this.rng() < 0.5) {
-          const bad =
-            nonBeaters[Math.floor(this.rng() * nonBeaters.length)];
-          this.playMain(playerId, bad);
-          return;
-        }
-        this.takeBottom(playerId);
-        return;
-      }
-      this.playMain(playerId, beaters[0]);
-      return;
-    }
-    this.takeBottom(playerId);
   }
 
   /** Pass main turn to next active seat (CPU must never soft-lock). */
-  private advanceMainTurn(fromPlayerId: number): void {
+  skipMainTurn(fromPlayerId: number): void {
     this.state = {
       ...this.state,
       activePlayerId: nextClockwiseId(this.state.players, fromPlayerId),
@@ -1419,14 +1137,17 @@ export class GameEngine {
     this.emit();
   }
 
-  private pickLead(player: EnginePlayer): EngineCard | null {
-    if (player.hand.length === 0) return null;
-    const trump = this.state.trump;
-    const nonTrump = player.hand
-      .filter((c) => trump === null || c.suit !== trump)
-      .sort((a, b) => a.rank - b.rank);
-    if (nonTrump[0]) return nonTrump[0];
-    return [...player.hand].sort((a, b) => a.rank - b.rank)[0];
+  /** Park the active seat on the human who must flip the discard. */
+  parkMainFlipper(flipperId: number): void {
+    if (this.state.activePlayerId === flipperId) {
+      return;
+    }
+    this.state = {
+      ...this.state,
+      activePlayerId: flipperId,
+      message: "Отбой — переверни",
+    };
+    this.emit();
   }
 
   // ——— guards ———

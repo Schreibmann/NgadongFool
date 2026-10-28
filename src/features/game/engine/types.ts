@@ -56,6 +56,15 @@ export interface SeatConfig {
   isCPU: boolean;
 }
 
+export interface StartOptions {
+  /** UI-only: forces a fresh GameEngine when remounting with the same seats. */
+  sessionNonce?: number;
+  seats: SeatConfig[];
+  /** Previous watchman becomes dealer; omit to pick randomly. */
+  watchmanId?: number | null;
+  seed?: number;
+}
+
 /** One bad-card gift owed during huyovye (one huyovaya → one gift from each other seat). */
 export interface HuyovyeObligation {
   giverId: PlayerId;
