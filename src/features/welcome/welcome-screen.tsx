@@ -3,12 +3,12 @@ import {
   View,
   ViewStyle,
   TextStyle,
-  SafeAreaView,
   ImageStyle,
-  ImageBackground,
   Pressable,
+  StyleSheet,
 } from "react-native";
 import { Image } from "expo-image";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { color, spacing, typography } from "@theme";
@@ -81,11 +81,14 @@ const NGADONG_TEXT_STYLE: ImageStyle = {
   height: 200,
   marginTop: -82,
 };
-const PLAY_BUTTON_STYLE: ImageStyle = {
+const PLAY_BUTTON_STYLE: ViewStyle = {
   display: "flex",
   alignItems: "center",
   width: 230,
   height: 86,
+};
+const PLAY_BUTTON_IMAGE: ImageStyle = {
+  ...StyleSheet.absoluteFill,
 };
 const COUNT_ROW: ViewStyle = {
   flexDirection: "row",
@@ -192,13 +195,14 @@ export const WelcomeScreen: FC = () => {
             style={PLAY}
             onPress={navigateToPlayground}
           >
-            <ImageBackground
-              resizeMode="contain"
-              style={PLAY_BUTTON_STYLE}
-              source={BUTTON_BACKGROUND}
-            >
+            <View style={PLAY_BUTTON_STYLE}>
+              <Image
+                contentFit="contain"
+                style={PLAY_BUTTON_IMAGE}
+                source={BUTTON_BACKGROUND}
+              />
               <Text tx="welcomeScreen.play" style={PLAY_TEXT} />
-            </ImageBackground>
+            </View>
           </Button>
         </View>
       </SafeAreaView>

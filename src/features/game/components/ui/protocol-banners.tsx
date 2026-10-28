@@ -1,10 +1,12 @@
 import { FC } from "react";
 import {
-  ImageBackground,
   ImageStyle,
   ScrollView,
+  StyleSheet,
   View,
+  ViewStyle,
 } from "react-native";
+import { Image } from "expo-image";
 import { EnginePlayer } from "../../engine";
 import { Button } from "@shared-components/button/button";
 import { Text } from "@shared-components/text/text";
@@ -12,12 +14,13 @@ import { SMALL, TEXT, BANNER, BUTTON_WRAPPER, BUTTON_TEXT } from "./common-style
 
 const BUTTON_BACKGROUND = require("@assets/images/button-background.png");
 
-const STUMP_BUTTON_STYLE: ImageStyle = {
+const STUMP_BUTTON_STYLE: ViewStyle = {
   display: "flex",
   alignItems: "center",
   width: 230,
   height: 75,
 };
+const STUMP_BUTTON_IMAGE: ImageStyle = { ...StyleSheet.absoluteFill };
 
 /** «Беру пни!» + «С пидорами не играю!» banners after a discard cycle. */
 export const ProtocolBanners: FC<{
@@ -30,13 +33,14 @@ export const ProtocolBanners: FC<{
       <View style={BANNER} testID="ClaimStumpsPrompt">
         <Text style={TEXT} text="Беру пни / пеньки / дубки!" />
         <Button testID="show-stumps-button" style={BUTTON_WRAPPER} onPress={onClaimStumps}>
-          <ImageBackground
-            resizeMode="contain"
-            style={STUMP_BUTTON_STYLE}
-            source={BUTTON_BACKGROUND}
-          >
+          <View style={STUMP_BUTTON_STYLE}>
+            <Image
+              contentFit="contain"
+              style={STUMP_BUTTON_IMAGE}
+              source={BUTTON_BACKGROUND}
+            />
             <Text tx="playgroundScreen.showStumps" style={BUTTON_TEXT} />
-          </ImageBackground>
+          </View>
         </Button>
       </View>
     ) : null}

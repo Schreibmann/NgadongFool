@@ -1,14 +1,16 @@
 import { FC, useCallback, useMemo, useState } from "react";
 import {
   FlatList,
-  ImageBackground,
+  ImageStyle,
   ListRenderItemInfo,
   Pressable,
-  SafeAreaView,
+  StyleSheet,
   View,
   ViewStyle,
   useWindowDimensions,
 } from "react-native";
+import { Image } from "expo-image";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { Screen } from "@shared-components/screen/screen";
 import { Card as CardType } from "./components/card/card.props";
@@ -85,6 +87,7 @@ const DECK_CONTAINER: ViewStyle = {
   position: "relative",
 };
 const FLAT_LIST: ViewStyle = { paddingHorizontal: spacing[1] };
+const BACKGROUND_IMAGE: ImageStyle = { ...StyleSheet.absoluteFill };
 const FOOTER: ViewStyle = { backgroundColor: "transparent" };
 const FOOTER_CONTENT: ViewStyle = {
   paddingVertical: spacing[2],
@@ -219,11 +222,12 @@ export const PlaygroundScreen: FC = () => {
   return (
     <DragProvider>
       <View testID="PlaygroundScreen" style={FULL}>
-        <ImageBackground
-          resizeMode="stretch"
-          style={FULL}
-          source={PLAYGROUND_BACKGROUND}
-        >
+        <View style={FULL}>
+          <Image
+            contentFit="fill"
+            style={BACKGROUND_IMAGE}
+            source={PLAYGROUND_BACKGROUND}
+          />
           <Screen
             style={MAIN_CONTAINER}
             preset="scroll"
@@ -258,11 +262,12 @@ export const PlaygroundScreen: FC = () => {
             </View>
 
             <View testID="TurnContainer" style={TURN_CONTAINER}>
-              <ImageBackground
-                resizeMode="stretch"
-                style={{ ...MAIN_TURN_BACKGROUND, flex: 1 }}
-                source={BENCH_BACKGROUND}
-              >
+              <View style={{ ...MAIN_TURN_BACKGROUND, flex: 1 }}>
+                <Image
+                  contentFit="fill"
+                  style={BACKGROUND_IMAGE}
+                  source={BENCH_BACKGROUND}
+                />
                 {state.phase === Phase.Prepare && state.prepareHeld ? (
                   <Draggable data={toUiCard(state.prepareHeld)} disabled={!prepareTurn.isMyTurn}>
                     <Card {...toUiCard(state.prepareHeld)} opened />
@@ -309,7 +314,7 @@ export const PlaygroundScreen: FC = () => {
                     ))}
                   </View>
                 ) : null}
-              </ImageBackground>
+              </View>
             </View>
           </Screen>
 
@@ -392,7 +397,7 @@ export const PlaygroundScreen: FC = () => {
               </DropZone>
             </View>
           </SafeAreaView>
-        </ImageBackground>
+        </View>
       </View>
     </DragProvider>
   );
