@@ -1,5 +1,10 @@
 import * as React from "react";
 import { Platform, StyleSheet, View, ViewStyle } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  type SharedValue,
+} from "react-native-reanimated";
 import { Card as CardView } from "../card/card";
 import { Card } from "../card/card.props";
 
@@ -24,8 +29,6 @@ export interface OverlayDragState {
   originY: number;
   width: number;
   height: number;
-  dx: number;
-  dy: number;
 }
 
 interface DragContextValue {
@@ -34,7 +37,7 @@ interface DragContextValue {
     pageX: number,
     pageY: number,
   ) => Promise<DropZoneRegistration | null>;
-  beginOverlayDrag: (state: Omit<OverlayDragState, "dx" | "dy">) => void;
+  beginOverlayDrag: (state: OverlayDragState) => void;
   moveOverlayDrag: (dx: number, dy: number) => void;
   endOverlayDrag: () => void;
 }
@@ -46,6 +49,10 @@ const DragContext = React.createContext<DragContextValue | null>(null);
 export function DragProvider({ children }: { children: React.ReactNode }) {
   const zonesRef = React.useRef(new Map<string, DropZoneRegistration>());
   const [overlay, setOverlay] = React.useState<OverlayDragState | null>(null);
+  // Ghost offsets live on shared values: pointermove updates never re-render
+  // React (the ghost transform is driven on the UI thread).
+  const dx = useSharedValue(0);
+  const dy = useSharedValue(0);
 
   const registerDropZone = React.useCallback((zone: DropZoneRegistration) => {
     zonesRef.current.set(zone.id, zone);
@@ -56,15 +63,14 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
 
   const findDropZoneAt = React.useCallback(
     async (pageX: number, pageY: number) => {
-      const all = Array.from(zonesRef.current.values());
+      const zones = Array.from(zonesRef.current.values()).filter(
+        (zone) => !zone.disabled,
+      );
+      const layouts = await Promise.all(zones.map((zone) => zone.measure()));
       let best: DropZoneRegistration | null = null;
       let bestArea = Number.POSITIVE_INFINITY;
-
-      for (const zone of all) {
-        if (zone.disabled) {
-          continue;
-        }
-        const layout = await zone.measure();
+      for (let i = 0; i < zones.length; i++) {
+        const layout = layouts[i];
         if (
           layout == null ||
           layout.width <= 0 ||
@@ -79,7 +85,7 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
         const area = layout.width * layout.height;
         if (area < bestArea) {
           bestArea = area;
-          best = zone;
+          best = zones[i];
         }
       }
       return best;
@@ -87,16 +93,19 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const beginOverlayDrag = React.useCallback(
-    (state: Omit<OverlayDragState, "dx" | "dy">) => {
-      setOverlay({ ...state, dx: 0, dy: 0 });
-    },
-    [],
-  );
+  const beginOverlayDrag = React.useCallback((state: OverlayDragState) => {
+    dx.value = 0;
+    dy.value = 0;
+    setOverlay(state);
+  }, [dx, dy]);
 
-  const moveOverlayDrag = React.useCallback((dx: number, dy: number) => {
-    setOverlay((prev) => (prev == null ? null : { ...prev, dx, dy }));
-  }, []);
+  const moveOverlayDrag = React.useCallback(
+    (nextDx: number, nextDy: number) => {
+      dx.value = nextDx;
+      dy.value = nextDy;
+    },
+    [dx, dy],
+  );
 
   const endOverlayDrag = React.useCallback(() => {
     setOverlay(null);
@@ -119,55 +128,78 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
-  const ghostLeft = overlay == null ? 0 : overlay.originX + overlay.dx;
-  const ghostTop = overlay == null ? 0 : overlay.originY + overlay.dy;
-
-  /** react-native-web accepts `position: "fixed"` even though RN types do not. */
-  const webGhostPlacement = {
-    position: "fixed",
-  } as unknown as ViewStyle;
-
   return (
     <DragContext.Provider value={value}>
       <View style={styles.host}>
         {children}
-        {overlay != null ? (
-          <View pointerEvents="none" style={styles.overlayRoot}>
-            <View
-              style={[
-                styles.ghost,
-                Platform.OS === "web"
-                  ? {
-                      // Viewport coords from getBoundingClientRect / pageX.
-                      ...webGhostPlacement,
-                      left: ghostLeft,
-                      top: ghostTop,
-                      width: overlay.width,
-                      height: overlay.height,
-                    }
-                  : {
-                      position: "absolute",
-                      left: ghostLeft,
-                      top: ghostTop,
-                      width: overlay.width,
-                      height: overlay.height,
-                    },
-              ]}
-            >
-              <CardView
-                rank={overlay.data.rank}
-                suit={overlay.data.suit}
-                isStump={overlay.data.isStump}
-                opened={!overlay.data.isStump}
-                animation={false}
-                dragging
-              />
-            </View>
-          </View>
-        ) : null}
+        <GhostOverlay overlay={overlay} dx={dx} dy={dy} />
       </View>
     </DragContext.Provider>
   );
+}
+
+interface GhostOverlayProps {
+  overlay: OverlayDragState | null;
+  dx: SharedValue<number>;
+  dy: SharedValue<number>;
+}
+
+const GhostOverlay = React.memo(function GhostOverlay({
+  overlay,
+  dx,
+  dy,
+}: GhostOverlayProps) {
+  // One sweet spot: React renders only on drag begin/end; pointermove updates
+  // mutate shared values consumed by this animated transform on the UI thread.
+  const transformStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: dx.value },
+      { translateY: dy.value },
+    ] as const,
+  }));
+  if (overlay == null) {
+    return null;
+  }
+  const placement =
+    Platform.OS === "web"
+      ? ghostPlacementWeb(overlay)
+      : ghostPlacementNative(overlay);
+  return (
+    <View pointerEvents="none" style={styles.overlayRoot}>
+      <Animated.View style={[placement, transformStyle]}>
+        <CardView
+          rank={overlay.data.rank}
+          suit={overlay.data.suit}
+          isStump={overlay.data.isStump}
+          opened={!overlay.data.isStump}
+          animation={false}
+          dragging
+        />
+      </Animated.View>
+    </View>
+  );
+});
+
+/** react-native-web accepts `position: "fixed"` even though RN types do not. */
+function ghostPlacementWeb(overlay: OverlayDragState): ViewStyle {
+  return {
+    ...({ position: "fixed" } as unknown as ViewStyle),
+    // Viewport coords from getBoundingClientRect / pageX.
+    left: overlay.originX,
+    top: overlay.originY,
+    width: overlay.width,
+    height: overlay.height,
+  };
+}
+
+function ghostPlacementNative(overlay: OverlayDragState): ViewStyle {
+  return {
+    position: "absolute",
+    left: overlay.originX,
+    top: overlay.originY,
+    width: overlay.width,
+    height: overlay.height,
+  };
 }
 
 export function useDragContext() {
@@ -194,5 +226,6 @@ const styles = StyleSheet.create({
   ghost: {
     zIndex: 9999,
     elevation: 9999,
-  },
+    position: "absolute",
+  } as ViewStyle,
 });
