@@ -131,7 +131,7 @@ describe("CPU main turn advances", () => {
       trump: CardSuits.Hearts,
       activePlayerId: 1,
       current: [],
-      // Claim requires roundJustEnded (discard flip), not merely empty pile.
+      // After the flip the table is clear — protocol window is open.
       roundJustEnded: true,
       players: seats4.map((s) =>
         s.id === 1
@@ -152,6 +152,57 @@ describe("CPU main turn advances", () => {
     expect(cpu.hand).toHaveLength(2);
     expect(cpu.stumps).toHaveLength(0);
     expect(cpu.stumpsRevealed).toBe(true);
+  });
+
+  it("CPU with empty hand claims stumps when bottom-takes cleared the table", () => {
+    const eng = new GameEngine({ seats: seats4, seed: 4 });
+    eng.loadMainFixture({
+      trump: CardSuits.Hearts,
+      activePlayerId: 1,
+      current: [],
+      // The pile dissolved via takeBottom (R7): no flip happened, so
+      // roundJustEnded is false — the protocol window must still open.
+      roundJustEnded: false,
+      players: seats4.map((s) =>
+        s.id === 1
+          ? player(s, {
+              hand: [],
+              stumps: [
+                { rank: CardRanks.ten, suit: CardSuits.Clubs },
+                { rank: CardRanks.jack, suit: CardSuits.Clubs },
+              ],
+            })
+          : player(s),
+      ),
+    });
+
+    eng.runCpuTurn();
+    const after = eng.getSnapshot();
+    const cpu = after.players.find((p) => p.id === 1)!;
+    // Claim happened — the game does not stall on the empty hand.
+    expect(cpu.hand).toHaveLength(2);
+    expect(cpu.stumps).toHaveLength(0);
+    expect(cpu.stumpsRevealed).toBe(true);
+    expect(after.message).toContain("Беру пни");
+  });
+
+  it("CPU with empty hand and no stumps exits when bottom-takes cleared the table", () => {
+    const eng = new GameEngine({ seats: seats4, seed: 4 });
+    eng.loadMainFixture({
+      trump: CardSuits.Hearts,
+      activePlayerId: 1,
+      current: [],
+      roundJustEnded: false,
+      players: seats4.map((s) =>
+        s.id === 1 ? player(s, { hand: [], stumps: [] }) : player(s),
+      ),
+    });
+
+    eng.runCpuTurn();
+    const after = eng.getSnapshot();
+    const cpu = after.players.find((p) => p.id === 1)!;
+    expect(cpu.active).toBe(false);
+    expect(after.message).toContain("С пидорами не играю");
   });
 
   it("CPU flips discard when pending and is last player", () => {

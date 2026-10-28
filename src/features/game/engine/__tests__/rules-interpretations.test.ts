@@ -71,8 +71,8 @@ describe("interpretation: takeBottom = only bottom card", () => {
   });
 });
 
-describe("interpretation: круг = discard flip cycle", () => {
-  it("claimStumps and exitGame require roundJustEnded from flipDiscard", () => {
+describe("interpretation: protocol window = clear table (flip or bottom-takes)", () => {
+  it("claim/exit are blocked only while cards or a pending flip sit on the table", () => {
     const eng = new GameEngine({ seats: seats3, seed: 2, watchmanId: 1 });
     eng.loadMainFixture({
       players: [
@@ -89,7 +89,8 @@ describe("interpretation: круг = discard flip cycle", () => {
       ],
       trump: null,
       activePlayerId: 3,
-      current: [],
+      // Table is NOT clear: a card still sits in the pile.
+      current: [{ rank: CardRanks.nine, suit: CardSuits.Clubs }],
       roundJustEnded: false,
     });
 
@@ -97,7 +98,38 @@ describe("interpretation: круг = discard flip cycle", () => {
     expect(eng.exitGame(2)).toBe(false);
     expect(eng.protocolsFor(1)).toEqual([]);
     expect(eng.protocolsFor(2)).toEqual([]);
+  });
 
+  it("table cleared by bottom-takes (no flip) still opens the protocol window", () => {
+    const eng = new GameEngine({ seats: seats3, seed: 2, watchmanId: 1 });
+    eng.loadMainFixture({
+      players: [
+        player(1, {
+          name: "A",
+          hand: [],
+          stumps: [{ rank: CardRanks.six, suit: CardSuits.Clubs }],
+        }),
+        player(2, { name: "B", hand: [], stumps: [] }),
+        player(3, {
+          name: "C",
+          hand: [{ rank: CardRanks.seven, suit: CardSuits.Clubs }],
+        }),
+      ],
+      trump: null,
+      activePlayerId: 1,
+      current: [],
+      // Pile dissolved via takeBottom — roundJustEnded stays false (R7).
+      roundJustEnded: false,
+    });
+
+    expect(eng.protocolsFor(1)).toEqual(["claim_stumps"]);
+    expect(eng.protocolsFor(2)).toEqual(["exit"]);
+    expect(eng.claimStumps(1)).toBe(true);
+    expect(eng.exitGame(2)).toBe(true);
+  });
+
+  it("flipDiscard after a full cycle clears the pile and sets roundJustEnded", () => {
+    const eng = new GameEngine({ seats: seats3, seed: 2, watchmanId: 1 });
     eng.loadMainFixture({
       players: [
         player(1, {

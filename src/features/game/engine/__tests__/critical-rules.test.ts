@@ -487,14 +487,12 @@ describe("minors", () => {
     expect(eng.getSnapshot().lastFoul?.foul).toBe(Foul.ExtraCardPastN);
   });
 
-  it("claimStumps / exitGame require roundJustEnded", () => {
+  it("claimStumps / exitGame require a clear table (flip or takes)", () => {
     const eng = new GameEngine({ seats: seats3, seed: 9, watchmanId: 1 });
-    eng.loadTestFixture({
-      phase: Phase.Main,
+    const base = {
+      phase: Phase.Main as const,
       trump: null,
       activePlayerId: 1,
-      roundJustEnded: false,
-      current: [],
       players: [
         player(1, {
           name: "A",
@@ -511,14 +509,30 @@ describe("minors", () => {
           hand: [{ rank: CardRanks.seven, suit: CardSuits.Clubs }],
         }),
       ],
-    });
+    };
 
+    // Cards still on the table — no protocol moment yet.
+    eng.loadTestFixture({
+      ...base,
+      roundJustEnded: false,
+      current: [{ rank: CardRanks.nine, suit: CardSuits.Clubs }],
+    });
     expect(eng.claimStumps(1)).toBe(false);
     expect(eng.exitGame(2)).toBe(false);
 
-    eng.loadTestFixture({ roundJustEnded: true });
+    // Table cleared by a flip.
+    eng.loadTestFixture({ ...base, roundJustEnded: true, current: [] });
     expect(eng.claimStumps(1)).toBe(true);
     expect(eng.exitGame(2)).toBe(true);
+
+    // Table cleared by bottom-takes (roundJustEnded stays false, R7).
+    eng.loadTestFixture({
+      ...base,
+      roundJustEnded: false,
+      current: [],
+      discardPendingFlip: false,
+    });
+    expect(eng.claimStumps(1)).toBe(true);
   });
 
   it("watchman handoff message works when previous watchman is null", () => {

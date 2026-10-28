@@ -318,60 +318,62 @@ export const PlaygroundScreen: FC = () => {
             </View>
           </Screen>
 
-          {state.phase === Phase.Huyovye ? (
-            <HuyovyeBanner
-              state={state}
-              humanHuyovyeDueCount={humanHuyovyeDue.length}
-            />
-          ) : null}
+          <SafeAreaView style={FOOTER}>
+            {/* Hints and actions sit directly above the hand so the board
+                stays visible; the scroll area shrinks instead. */}
+            {state.phase === Phase.Huyovye ? (
+              <HuyovyeBanner
+                state={state}
+                humanHuyovyeDueCount={humanHuyovyeDue.length}
+              />
+            ) : null}
 
-          {state.pendingWatchmanHandoff ? (
-            <WatchmanHandoffBanner
-              state={state}
-              onAccept={() => engine.acceptWatchmanHandoff()}
-              onAskWho={() => engine.askWhoIsWatchman(HUMAN_ID)}
-            />
-          ) : null}
+            {state.pendingWatchmanHandoff ? (
+              <WatchmanHandoffBanner
+                state={state}
+                onAccept={() => engine.acceptWatchmanHandoff()}
+                onAskWho={() => engine.askWhoIsWatchman(HUMAN_ID)}
+              />
+            ) : null}
 
-          {state.phase === Phase.Ended &&
-          !state.pendingWatchmanHandoff &&
-          activePlayers.length <= 2 ? (
-            <EndedBanner
+            {state.phase === Phase.Ended &&
+            !state.pendingWatchmanHandoff &&
+            activePlayers.length <= 2 ? (
+              <EndedBanner
+                state={state}
+                humanId={HUMAN_ID}
+                activePlayers={activePlayers}
+                onAskWho={() => engine.askWhoIsWatchman(HUMAN_ID)}
+                onAnswerWho={() =>
+                  state.watchmanId != null &&
+                  engine.answerWatchman(state.watchmanId, HUMAN_ID)
+                }
+              />
+            ) : null}
+
+            <TurnActionButtons
+              engine={engine}
               state={state}
               humanId={HUMAN_ID}
-              activePlayers={activePlayers}
-              onAskWho={() => engine.askWhoIsWatchman(HUMAN_ID)}
-              onAnswerWho={() =>
-                state.watchmanId != null &&
-                engine.answerWatchman(state.watchmanId, HUMAN_ID)
-              }
+              isMyTurn={prepareTurn.isMyTurn}
+              canKeepPrepare={prepareTurn.canKeepPrepare}
             />
-          ) : null}
 
-          <TurnActionButtons
-            engine={engine}
-            state={state}
-            humanId={HUMAN_ID}
-            isMyTurn={prepareTurn.isMyTurn}
-            canKeepPrepare={prepareTurn.canKeepPrepare}
-          />
-
-          <ProtocolBanners
-            protocols={myProtocols}
-            onClaimStumps={() => engine.claimStumps(HUMAN_ID)}
-            onExit={() => engine.exitGame(HUMAN_ID)}
-          />
-
-          {state.phase === Phase.Main &&
-          activePlayers.length === 2 &&
-          !state.pendingWatchmanHandoff ? (
-            <DuelControls
-              duelists={activePlayers}
-              onSetWatchman={(id) => engine.setWatchman(id)}
+            <ProtocolBanners
+              protocols={myProtocols}
+              onClaimStumps={() => engine.claimStumps(HUMAN_ID)}
+              onExit={() => engine.exitGame(HUMAN_ID)}
             />
-          ) : null}
 
-          <SafeAreaView style={FOOTER}>
+            {state.phase === Phase.Main &&
+            activePlayers.length === 2 &&
+            !state.pendingWatchmanHandoff ? (
+              <DuelControls
+                duelists={activePlayers}
+                onSetWatchman={(id) => engine.setWatchman(id)}
+              />
+            ) : null}
+
             <View style={FOOTER_CONTENT}>
               <DropZone
                 disabled={

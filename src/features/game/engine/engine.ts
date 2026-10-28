@@ -957,11 +957,22 @@ export class GameEngine {
   }
 
   /**
+   * Protocol window (§8): hand-empty seats may claim stumps / exit when the
+   * table is clear. The table clears either via flipDiscard (roundJustEnded)
+   * or because bottom-takes absorbed the whole pile (R7) — both count.
+   */
+  private protocolWindow(): boolean {
+    return (
+      !this.state.discardPendingFlip && this.state.current.length === 0
+    );
+  }
+
+  /**
    * «Круг» = discard flip cycle: only legal after flipDiscard sets roundJustEnded.
    */
   claimStumps(playerId: number): boolean {
     if (this.state.phase !== Phase.Main) return false;
-    if (!this.state.roundJustEnded) {
+    if (!this.protocolWindow()) {
       return false;
     }
     const self = findPlayer(this.state, playerId);
@@ -1005,7 +1016,7 @@ export class GameEngine {
     if (self.hand.length > 0 || self.stumps.length > 0) {
       return false;
     }
-    if (!this.state.roundJustEnded) {
+    if (!this.protocolWindow()) {
       return false;
     }
 
@@ -1052,7 +1063,7 @@ export class GameEngine {
   /** Which protocol buttons apply for a seat after a discard cycle. */
   protocolsFor(playerId: number): Array<"claim_stumps" | "exit"> {
     if (this.state.phase !== Phase.Main) return [];
-    if (!this.state.roundJustEnded) {
+    if (!this.protocolWindow()) {
       return [];
     }
     const self = findPlayer(this.state, playerId);

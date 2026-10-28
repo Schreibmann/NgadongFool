@@ -291,13 +291,19 @@ Fouls P12/P13/P15 move the turn clockwise after the offender, then open Huyovye
 
 Phrases are exact strings; paraphrases do not count.
 
-1. Hand empty **and** discard cycle ended (R9) → announce **"Беру пни!"**
+1. Hand empty **and** the table is clear → announce **"Беру пни!"**
    (variants: пеньки / дубки) before revealing stumps. Else foul P16.
-2. Hand empty again after stumps **and** another cycle → **"С пидорами не играю!"**
-   → `active: false`.
+2. Hand empty again after stumps **and** the table clear again →
+   **"С пидорами не играю!"** → `active: false`.
 3. Exit requires hand empty, stumps empty, and the round condition.
 4. Exited players may name trump / inspect (engine should not foul inactive seats).
 5. Discard size recounts (R8).
+
+**Resolved interpretation R9 (protocol window):** "discard cycle ended" means
+**the table is clear** — `current.length === 0 && !discardPendingFlip`. Under
+`bottom_only` (R7) the pile can dissolve by takes without a flip, so
+`roundJustEnded` alone is too narrow: a claim/exit is legal on a clear table
+regardless of how it got clear.
 
 ---
 

@@ -144,10 +144,14 @@ export class CpuDirector {
     // Empty hand + pile: cannot beat → take bottom (never spin skipMainTurn).
     if (player.hand.length === 0) {
       if (state.current.length === 0) {
-        if (player.stumps.length > 0) {
-          this.host.claimStumps(playerId);
-        } else {
-          this.host.exitGame(playerId);
+        // Protocol moment (§8): claim stumps, or exit with none left. The
+        // engine's protocol window guarantees one of these succeeds while the
+        // table is clear; the skip fallback only guards against stalls.
+        const settled = player.stumps.length
+          ? this.host.claimStumps(playerId)
+          : this.host.exitGame(playerId);
+        if (!settled) {
+          this.host.skipMainTurn(playerId);
         }
         this.loopGuard.reset();
         return;
