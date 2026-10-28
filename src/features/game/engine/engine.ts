@@ -53,6 +53,9 @@ export class GameEngine {
   private listeners = new Set<Listener>();
   private rng: () => number;
   private readonly cpu: CpuDirector;
+  /** Batched-emit bookkeeping (see emit/batched). */
+  private emitDepth = 0;
+  private emitScheduled = false;
 
   constructor(options: StartOptions) {
     if (options.seats.length < 2) {
@@ -110,7 +113,34 @@ export class GameEngine {
 
   getSnapshot = (): GameState => this.state;
 
+  /**
+   * Publish one snapshot: clone state, notify listeners. Emits made inside a
+   * `batched()` window are coalesced into a single publish at window exit, so
+   * composite actions (cascade + draw) never flood subscribers.
+   */
   private emit(): void {
+    if (this.emitDepth > 0) {
+      this.emitScheduled = true;
+      return;
+    }
+    this.flushNow();
+  }
+
+  /** Run `fn` in one emit window; the exit publishes at most one snapshot. */
+  private batched<T>(fn: () => T): T {
+    this.emitDepth++;
+    try {
+      return fn();
+    } finally {
+      this.emitDepth--;
+      if (this.emitDepth === 0 && this.emitScheduled) {
+        this.emitScheduled = false;
+        this.flushNow();
+      }
+    }
+  }
+
+  private flushNow(): void {
     const frozen = this.state;
     this.state = {
       ...frozen,
@@ -255,8 +285,13 @@ export class GameEngine {
     return moves;
   }
 
-  /** Draw top of deck into prepareHeld (or take last card → trump + huyovye). */
+  /** Draw top of deck into prepareHeld (or take last card → trump + huyovye).
+   *  Composite action (cascade + draw): single snapshot publish via batched. */
   drawPrepare(playerId: number): boolean {
+    return this.batched(() => this.drawPrepareInner(playerId));
+  }
+
+  private drawPrepareInner(playerId: number): boolean {
     if (this.state.phase !== Phase.Prepare) return false;
     if (!this.requireTurn(playerId, Foul.DrewOutOfTurn)) return false;
 
@@ -567,9 +602,10 @@ export class GameEngine {
   /**
    * CPU seats fulfill pending huyovye gifts with the worst-to-keep heuristic
    * (delegated to the CPU director; engine stays the rules arbiter).
+   * Whole drain publishes a single snapshot.
    */
   runCpuHuyovye(): void {
-    this.cpu.runHuyovye();
+    this.batched(() => this.cpu.runHuyovye());
   }
 
   /** Drop one owed gift: giver holds only his last card (never given, R4). */
@@ -1106,24 +1142,28 @@ export class GameEngine {
   // ——— CPU ———
 
   runCpuTurn(): void {
-    // Huyovye gifts are by seat obligation, not by activePlayerId — always
-    // drain CPU givers even when the prepare/main "active" seat is human.
-    if (this.state.phase === Phase.Huyovye) {
-      this.runCpuHuyovye();
-      return;
-    }
+    // Whole CPU turn (cascade + draw + place / beat + take) publishes one
+    // snapshot; nested huyovye drain re-enters batched harmlessly.
+    this.batched(() => {
+      // Huyovye gifts are by seat obligation, not by activePlayerId — always
+      // drain CPU givers even when the prepare/main "active" seat is human.
+      if (this.state.phase === Phase.Huyovye) {
+        this.runCpuHuyovye();
+        return;
+      }
 
-    const id = this.state.activePlayerId;
-    const player = findPlayer(this.state, id);
-    if (!player.isCPU || !player.active) return;
+      const id = this.state.activePlayerId;
+      const player = findPlayer(this.state, id);
+      if (!player.isCPU || !player.active) return;
 
-    if (this.state.phase === Phase.Prepare) {
-      this.cpu.runPrepareTurn(id);
-      return;
-    }
-    if (this.state.phase === Phase.Main) {
-      this.cpu.runMainTurn(id);
-    }
+      if (this.state.phase === Phase.Prepare) {
+        this.cpu.runPrepareTurn(id);
+        return;
+      }
+      if (this.state.phase === Phase.Main) {
+        this.cpu.runMainTurn(id);
+      }
+    });
   }
 
   /** Pass main turn to next active seat (CPU must never soft-lock). */
