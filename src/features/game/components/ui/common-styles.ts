@@ -7,30 +7,40 @@ export const FLEX_CENTER: ViewStyle = {
   alignItems: "center",
   justifyContent: "center",
 };
+
 export const TEXT: TextStyle = {
-  fontSize: 16,
-  color: color.palette.lighterGrey,
+  fontSize: 15,
+  color: color.text,
   fontFamily: typography.ngadong,
   textAlign: "center",
 };
-export const SMALL: TextStyle = { ...TEXT, fontSize: 12 };
+export const SMALL: TextStyle = { ...TEXT, fontSize: 11 };
+export const HEADER: TextStyle = {
+  ...TEXT,
+  fontSize: 22,
+  fontWeight: "800",
+};
 export const BANNER: ViewStyle = {
-  backgroundColor: "rgba(0,0,0,0.55)",
+  backgroundColor: "rgba(26,20,16,0.85)",
   padding: 12,
   marginHorizontal: 8,
   marginBottom: 8,
+  borderRadius: 8,
   alignItems: "center",
+  borderWidth: 1,
+  borderColor: color.line,
 };
 export const BUTTON_WRAPPER: ViewStyle = { backgroundColor: "transparent" };
 export const BUTTON_TEXT: TextStyle = {
   ...TEXT,
-  fontSize: 18,
+  fontSize: 11,
   lineHeight: 52,
-  letterSpacing: 2,
+  letterSpacing: 1,
+  fontWeight: "700",
 };
 export const PLAYER: ViewStyle = { ...FLEX_CENTER, maxWidth: 120 };
 export const PLAYER_IMAGE: ImageStyle = {
   borderRadius: 18,
-  height: 56,
-  width: 52,
+  height: 72,
+  width: 64,
 };

@@ -1,0 +1,272 @@
+{
+  "cave_board_mural": {
+    "file": "backgrounds/cave_board_mural.png",
+    "width": 636,
+    "height": 358,
+    "note": "Decorative cave-board surface; use inside a clipped container, not as a full-screen background."
+  },
+  "cave_rock_texture_strip": {
+    "file": "backgrounds/cave_rock_texture_strip.png",
+    "width": 881,
+    "height": 128,
+    "note": "Rock texture sampled from the provided game screenshot; raw strip for custom texture mapping."
+  },
+  "cave_rock_texture_tile": {
+    "file": "backgrounds/cave_rock_texture_tile.png",
+    "width": 512,
+    "height": 512,
+    "note": "Square rock texture synthesized from the screenshot texture strip, prepared for repeating backgrounds; inspect for subtle seams at your target scale."
+  },
+  "rope_cave_banner": {
+    "file": "panels/rope_cave_banner.png",
+    "width": 595,
+    "height": 177,
+    "note": "Decorative wide panel with rope/bone trim and cave-painting motifs; no baked text."
+  },
+  "stone_panel_flat_wide": {
+    "file": "panels/stone_panel_flat_wide.png",
+    "width": 446,
+    "height": 85,
+    "note": "Blank low-profile stone panel; useful as a dynamic text container."
+  },
+  "stone_panel_flat_small": {
+    "file": "panels/stone_panel_flat_small.png",
+    "width": 131,
+    "height": 77,
+    "note": "Blank low-profile small stone panel."
+  },
+  "stone_panel_blank_large": {
+    "file": "panels/stone_panel_blank_large.png",
+    "width": 332,
+    "height": 105,
+    "note": "Blank framed stone panel for text or dynamic content."
+  },
+  "stone_panel_blank_long": {
+    "file": "panels/stone_panel_blank_long.png",
+    "width": 382,
+    "height": 90,
+    "note": "Blank elongated stone panel for HUD and status text."
+  },
+  "stone_tile_square": {
+    "file": "panels/stone_tile_square.png",
+    "width": 143,
+    "height": 130,
+    "note": "Square stone tile/panel."
+  },
+  "stone_tile_small": {
+    "file": "panels/stone_tile_small.png",
+    "width": 131,
+    "height": 121,
+    "note": "Small square stone tile/panel."
+  },
+  "wood_bone_divider": {
+    "file": "decor/wood_bone_divider.png",
+    "width": 387,
+    "height": 54,
+    "note": "Horizontal bone/wood divider."
+  },
+  "handprint_stone": {
+    "file": "decor/handprint_stone.png",
+    "width": 99,
+    "height": 124,
+    "note": "Handprint engraved in stone plaque."
+  },
+  "avatar_ivan_bearded": {
+    "file": "avatars/avatar_ivan_bearded.png",
+    "width": 150,
+    "height": 187,
+    "note": "Bearded dark-haired male portrait in stone frame."
+  },
+  "avatar_sebastian_rugged": {
+    "file": "avatars/avatar_sebastian_rugged.png",
+    "width": 134,
+    "height": 187,
+    "note": "Rugged male portrait in stone frame."
+  },
+  "avatar_gosha_red_beard": {
+    "file": "avatars/avatar_gosha_red_beard.png",
+    "width": 136,
+    "height": 186,
+    "note": "Smiling red-bearded male portrait in stone frame."
+  },
+  "avatar_female_optional": {
+    "file": "avatars/avatar_female_optional.png",
+    "width": 140,
+    "height": 188,
+    "note": "Optional female tribal character portrait in stone frame."
+  },
+  "icon_crown": {
+    "file": "icons/icon_crown.png",
+    "width": 67,
+    "height": 69,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_settings": {
+    "file": "icons/icon_settings.png",
+    "width": 64,
+    "height": 68,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_wifi": {
+    "file": "icons/icon_wifi.png",
+    "width": 57,
+    "height": 65,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_players": {
+    "file": "icons/icon_players.png",
+    "width": 47,
+    "height": 65,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_sound": {
+    "file": "icons/icon_sound.png",
+    "width": 66,
+    "height": 65,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_music": {
+    "file": "icons/icon_music.png",
+    "width": 65,
+    "height": 65,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_info": {
+    "file": "icons/icon_info.png",
+    "width": 50,
+    "height": 64,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_close": {
+    "file": "icons/icon_close.png",
+    "width": 45,
+    "height": 64,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_play_arrow": {
+    "file": "icons/icon_play_arrow.png",
+    "width": 139,
+    "height": 77,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_cancel": {
+    "file": "icons/icon_cancel.png",
+    "width": 142,
+    "height": 79,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_refresh": {
+    "file": "icons/icon_refresh.png",
+    "width": 137,
+    "height": 77,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "badge_crown_small": {
+    "file": "icons/badge_crown_small.png",
+    "width": 65,
+    "height": 68,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "badge_check": {
+    "file": "icons/badge_check.png",
+    "width": 50,
+    "height": 55,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "badge_warning": {
+    "file": "icons/badge_warning.png",
+    "width": 66,
+    "height": 90,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "badge_players": {
+    "file": "icons/badge_players.png",
+    "width": 93,
+    "height": 70,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "badge_counter": {
+    "file": "icons/badge_counter.png",
+    "width": 52,
+    "height": 70,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_chat": {
+    "file": "icons/icon_chat.png",
+    "width": 55,
+    "height": 74,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "icon_more_chat": {
+    "file": "icons/icon_more_chat.png",
+    "width": 55,
+    "height": 55,
+    "note": "Stone-style UI icon/button; label/state should be rendered by React Native when applicable."
+  },
+  "medallion_crown": {
+    "file": "decor/medallion_crown.png",
+    "width": 136,
+    "height": 131,
+    "note": "Crown motif medallion."
+  },
+  "medallion_target": {
+    "file": "decor/medallion_target.png",
+    "width": 144,
+    "height": 130,
+    "note": "Target motif medallion."
+  },
+  "stone_handprint_tile": {
+    "file": "decor/stone_handprint_tile.png",
+    "width": 99,
+    "height": 124,
+    "note": "Handprint tile; same source art as handprint_stone."
+  },
+  "torch_lit": {
+    "file": "decor/torch_lit.png",
+    "width": 46,
+    "height": 266,
+    "note": "Lit torch prop for optional scene decoration; crop is intentionally tight to avoid adjacent UI marks."
+  },
+  "spear_stone": {
+    "file": "decor/spear_stone.png",
+    "width": 55,
+    "height": 179,
+    "note": "Stone spear prop for optional scene decoration."
+  },
+  "stone_bone_prop": {
+    "file": "decor/stone_bone_prop.png",
+    "width": 137,
+    "height": 71,
+    "note": "Bone/stone decorative prop."
+  },
+  "card_back_single": {
+    "file": "card_back/card_back_single.png",
+    "width": 210,
+    "height": 274,
+    "note": "Decorative card back. Render rank, suit, and face cards dynamically in React Native."
+  },
+  "card_back_stack": {
+    "file": "card_back/card_back_stack.png",
+    "width": 294,
+    "height": 300,
+    "note": "Decorative overlapping card stack for deck/discard piles."
+  },
+  "reference_card_queen_clubs": {
+    "file": "reference_only/reference_card_queen_clubs.png",
+    "width": 180,
+    "height": 277,
+    "note": "Style reference only; card-face details may be inconsistent. Use the app data to render faces."
+  },
+  "reference_card_eight_clubs": {
+    "file": "reference_only/reference_card_eight_clubs.png",
+    "width": 179,
+    "height": 280,
+    "note": "Style reference only; card-face details may be inconsistent. Use the app data to render faces."
+  },
+  "reference_card_six_hearts": {
+    "file": "reference_only/reference_card_six_hearts.png",
+    "width": 179,
+    "height": 279,
+    "note": "Style reference only; card-face details may be inconsistent. Use the app data to render faces."
+  }
+}

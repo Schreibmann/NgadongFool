@@ -1,100 +1,44 @@
 import { type FC, useCallback, useMemo, useState } from "react";
 import {
-  FlatList,
   type ImageStyle,
-  type ListRenderItemInfo,
-  Pressable,
   StyleSheet,
+  type TextStyle,
   View,
   type ViewStyle,
   useWindowDimensions,
 } from "react-native";
 import { Image } from "expo-image";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { type RouteProp, useRoute } from "@react-navigation/native";
-import { Screen } from "@shared-components/screen/screen";
-import type { Card as CardType } from "./components/card/card.props";
 import { Card } from "./components/card/card";
+import type { Card as CardType } from "./components/card/card.props";
 import { DragProvider, Draggable, DropZone } from "./components/drag-drop";
 import { type EngineCard, type EnginePlayer, Phase } from "./engine";
 import { useGameEngine } from "./use-game-engine";
 import { useCpuDriver } from "./hooks/use-cpu-driver";
 import { usePrepareTurn } from "./hooks/use-prepare-turn";
-import { StatusBox } from "./components/ui/status-box";
-import { HuyovyeBanner } from "./components/ui/huyovye-banner";
-import { WatchmanHandoffBanner } from "./components/ui/watchman-banner";
-import { EndedBanner } from "./components/ui/ended-banner";
-import {
-  DuelControls,
-  ProtocolBanners,
-} from "./components/ui/protocol-banners";
-import { TurnActionButtons } from "./components/ui/turn-action-buttons";
-import { OpponentSlot } from "./components/ui/opponent-slot";
+import { OpponentSeat, SeatCard } from "./components/ui/opponent-slot";
 import { toUiCard, uiCardKey } from "./components/ui/to-ui-card";
-import { FULL, PLAYER } from "./components/ui/common-styles";
+import { CaveBackground } from "./components/ui/cave-background";
+import { TopBar } from "./components/ui/top-bar";
+import { MessageBar } from "./components/ui/message-bar";
+import { PlayerHand } from "./components/ui/player-hand";
+import { StonePanel } from "./components/ui/stone-panel";
+import { computeTableLayout } from "./components/ui/table-layout";
+import { HUD_TEXT } from "./components/ui/table-text";
+import { FULL } from "./components/ui/common-styles";
 import {
   DEFAULT_PLAYER_COUNT,
   HUMAN_ID,
   PLAYER_AVATARS,
   buildSeats,
 } from "./players";
-import { CardFanStride, CardWidth, cardHeight } from "@shared-constants";
-import { spacing } from "@theme";
+import { Text } from "@shared-components/text/text";
+import { tableAssets } from "@assets/prehistoric-v2/assets";
 import type { RootStackParamList } from "@navigation/types";
-
-const BENCH_BACKGROUND = require("@assets/images/bench.png");
-const PLAYGROUND_BACKGROUND = require("@assets/images/playground.png");
-
-const MAIN_CONTAINER: ViewStyle = {
-  ...FULL,
-  paddingHorizontal: spacing[2],
-};
-const OPPONENTS_ROW: ViewStyle = {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-around",
-  alignItems: "flex-start",
-  gap: 8,
-  paddingVertical: 8,
-};
-const TURN_CONTAINER: ViewStyle = {
-  ...FULL,
-  minHeight: 200,
-};
-const MAIN_TURN_BACKGROUND: ViewStyle = {
-  alignItems: "center",
-  justifyContent: "center",
-  flexDirection: "row",
-  width: "100%",
-  height: 192,
-  padding: 16,
-};
-const MAIN_TURN_CONTAINER: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "flex-start",
-  width: "100%",
-  height: "100%",
-};
-const DECK_CONTAINER: ViewStyle = {
-  width: 102,
-  height: 156,
-  position: "relative",
-};
-const FLAT_LIST: ViewStyle = { paddingHorizontal: spacing[1] };
-const BACKGROUND_IMAGE: ImageStyle = { ...StyleSheet.absoluteFill };
-const FOOTER: ViewStyle = { backgroundColor: "transparent" };
-const FOOTER_CONTENT: ViewStyle = {
-  paddingVertical: spacing[2],
-  paddingHorizontal: spacing[2],
-};
-const SELECTED_CARD: ViewStyle = {
-  borderWidth: 2,
-  borderColor: "#f9a825",
-};
-/** 50% overlap: each next card covers half of the previous. */
-const CARD_ITEM_LENGTH = CardFanStride;
-const FAN_CARD: ViewStyle = { marginLeft: -CardWidth * 0.5 };
-const FAN_CARD_FIRST: ViewStyle = { marginLeft: 0 };
 
 export const PlaygroundScreen: FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, "Playground">>();
@@ -102,7 +46,8 @@ export const PlaygroundScreen: FC = () => {
   const deckSize = route.params?.deckSize ?? 36;
   const seats = useMemo(() => buildSeats(playerCount), [playerCount]);
   const sessionNonce = useMemo(() => Date.now(), []);
-  const { width } = useWindowDimensions();
+  const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const { engine, state } = useGameEngine({ seats, sessionNonce, deckSize });
   useCpuDriver(engine, state);
@@ -110,7 +55,6 @@ export const PlaygroundScreen: FC = () => {
 
   const me = state.players.find((p) => p.id === HUMAN_ID);
   const opponents = state.players.filter((p) => p.id !== HUMAN_ID);
-  const active = state.players.find((p) => p.id === state.activePlayerId);
   const watchman = state.players.find((p) => p.id === state.watchmanId);
   const activePlayers = state.players.filter((p) => p.active);
 
@@ -128,20 +72,25 @@ export const PlaygroundScreen: FC = () => {
       ]
     : [];
 
+  const layout = computeTableLayout({
+    width: window.width,
+    height: window.height - insets.top - insets.bottom,
+    opponents: opponents.length,
+    handCount: handData.length,
+  });
+
   const onDropToPlayer = useCallback(
-    (target: EnginePlayer, card: CardType) => {
-      if (!prepareTurn.isMyTurn) return;
-      if (state.phase === Phase.Prepare) {
-        engine.placePrepare(HUMAN_ID, target.id, {
-          rank: card.rank,
-          suit: card.suit,
-        });
-      }
+    (targetId: number, card: CardType) => {
+      if (!prepareTurn.isMyTurn || state.phase !== Phase.Prepare) return;
+      engine.placePrepare(HUMAN_ID, targetId, {
+        rank: card.rank,
+        suit: card.suit,
+      });
     },
     [engine, prepareTurn.isMyTurn, state.phase]
   );
 
-  const onDropMain = useCallback(
+  const onDropToTable = useCallback(
     (card: CardType) => {
       if (!prepareTurn.isMyTurn || state.phase !== Phase.Main) return;
       engine.playMain(HUMAN_ID, { rank: card.rank, suit: card.suit });
@@ -158,252 +107,406 @@ export const PlaygroundScreen: FC = () => {
     [engine, huyovyePick]
   );
 
-  const renderHandItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<CardType>) => {
-      const fanStyle: ViewStyle =
-        index === 0
-          ? { ...FAN_CARD_FIRST, zIndex: index }
-          : { ...FAN_CARD, zIndex: index };
-      if (state.phase === Phase.Huyovye && !item.isStump) {
-        const selected =
-          huyovyePick != null &&
-          huyovyePick.rank === item.rank &&
-          huyovyePick.suit === item.suit;
-        return (
-          <Pressable
-            onPress={() => setHuyovyePick({ rank: item.rank, suit: item.suit })}
-            style={[fanStyle, selected ? SELECTED_CARD : undefined]}
-          >
-            <Card {...item} opened />
-          </Pressable>
-        );
-      }
-      return (
-        <Draggable
-          data={item}
-          disabled={
-            !!item.isStump ||
-            !prepareTurn.isMyTurn ||
-            (state.phase !== Phase.Prepare && state.phase !== Phase.Main)
-          }
-          style={fanStyle}
-        >
-          <Card {...item} opened={!item.isStump} />
-        </Draggable>
-      );
-    },
-    [huyovyePick, prepareTurn.isMyTurn, state.phase]
-  );
-
-  const getItemLayout = useCallback(
-    (_data: ArrayLike<CardType> | null | undefined, index: number) => ({
-      length: CARD_ITEM_LENGTH,
-      offset: CARD_ITEM_LENGTH * index,
-      index,
-    }),
-    []
-  );
-
   if (!me) {
     return null;
   }
 
-  const seatChipWidth = Math.max(
-    72,
-    Math.min(110, (width - 24) / Math.max(3, opponents.length))
+  const canReceiveHuyovye = (p: EnginePlayer): boolean =>
+    state.phase === Phase.Huyovye &&
+    huyovyePick != null &&
+    humanHuyovyeDue.some((q) => q.receiverId === p.id);
+
+  const isPrepareTarget = (p: EnginePlayer): boolean =>
+    prepareTurn.isMyTurn &&
+    state.phase === Phase.Prepare &&
+    p.active &&
+    prepareTurn.legalPrepareTarget?.id === p.id;
+
+  // Top cards are public only through the prepare/batch-gift stretch; a
+  // mid-main foul pause keeps hands private and the paused pile on the table.
+  const showSeatCards =
+    state.phase === Phase.Prepare ||
+    (state.phase === Phase.Huyovye && !state.resumeMainAfterHuyovye);
+  const showPile =
+    state.phase === Phase.Main ||
+    (state.phase === Phase.Huyovye && state.resumeMainAfterHuyovye);
+
+  const seatsRow = (
+    <View style={[SEATS_ROW, { gap: layout.seatGap }]} testID="OpponentsRow">
+      {opponents.map((p) => (
+        <OpponentSeat
+          key={p.id}
+          player={p}
+          avatar={PLAYER_AVATARS[p.id]}
+          width={layout.seatWidth}
+          portrait={layout.portrait}
+          nameplateHeight={layout.nameplateHeight}
+          compact={!layout.isWide}
+          isTheirTurn={state.activePlayerId === p.id}
+          outstanding={engine.huyovyeOutstanding(p.id)}
+          canReceiveHuyovye={canReceiveHuyovye(p)}
+          onHuyovyeTap={() => giveHuyovye(p.id)}
+        />
+      ))}
+    </View>
   );
+
+  const seatCards = (
+    <View style={[SEATS_ROW, { gap: layout.seatGap }]}>
+      {opponents.map((p) => (
+        <SeatCard
+          key={p.id}
+          player={p}
+          phase={state.phase}
+          width={layout.seatWidth}
+          card={layout.seatCard}
+          prepareDropEnabled={isPrepareTarget(p)}
+          canReceiveHuyovye={canReceiveHuyovye(p)}
+          onDrop={(card) => onDropToPlayer(p.id, card)}
+          onHuyovyeTap={() => giveHuyovye(p.id)}
+        />
+      ))}
+    </View>
+  );
+
+  const deckWidth = layout.sideSlotWidth - (layout.isWide ? 16 : 6);
+  const deckSlot =
+    state.phase === Phase.Prepare && state.deck.length > 0 ? (
+      <View
+        style={
+          layout.stackedSlots
+            ? [INLINE_SLOT, { width: deckWidth }]
+            : [SIDE_SLOT, { left: layout.padding, width: deckWidth }]
+        }
+        testID="PrepareDeck"
+      >
+        <View>
+          <Image
+            source={tableAssets.cards.deck}
+            style={{ width: deckWidth, height: deckWidth * (276 / 295) }}
+            contentFit="contain"
+          />
+          <StonePanel kind="roundBadge" style={DECK_BADGE}>
+            <Text style={BADGE_TEXT} text={String(state.deck.length)} />
+          </StonePanel>
+        </View>
+      </View>
+    ) : null;
+
+  const heldSlot =
+    state.phase === Phase.Prepare && state.prepareHeld ? (
+      <View
+        style={
+          layout.stackedSlots
+            ? INLINE_SLOT
+            : [SIDE_SLOT, { right: layout.padding, width: deckWidth }]
+        }
+        testID="PrepareHeld"
+      >
+        <View style={prepareTurn.isMyTurn ? HELD_GLOW : null}>
+          <Draggable
+            data={toUiCard(state.prepareHeld)}
+            disabled={!prepareTurn.isMyTurn}
+          >
+            <Card
+              {...toUiCard(state.prepareHeld)}
+              opened
+              width={layout.tableCard.width}
+              height={layout.tableCard.height}
+            />
+          </Draggable>
+        </View>
+      </View>
+    ) : null;
+
+  const pileStride = Math.round(layout.tableCard.width * 0.55);
+  const pileCards = state.current.map((card, i) => (
+    <View
+      key={uiCardKey(toUiCard(card), i)}
+      style={{
+        position: "absolute",
+        left: i * pileStride,
+        top: i % 2 === 0 ? 0 : 6,
+        zIndex: i,
+      }}
+    >
+      <Card
+        {...toUiCard(card)}
+        opened
+        width={layout.tableCard.width}
+        height={layout.tableCard.height}
+      />
+    </View>
+  ));
+  const pileWidth =
+    state.current.length > 0
+      ? layout.tableCard.width + pileStride * (state.current.length - 1)
+      : layout.tableCard.width;
+  const pileBox = (
+    <View style={{ width: pileWidth, height: layout.tableCard.height + 6 }}>
+      {pileCards}
+    </View>
+  );
+  const tableDropEnabled =
+    state.phase === Phase.Main &&
+    prepareTurn.isMyTurn &&
+    !state.discardPendingFlip;
+
+  const pile = showPile ? (
+    state.phase === Phase.Main ? (
+      <DropZone
+        disabled={!tableDropEnabled}
+        onDrop={onDropToTable}
+        style={[TABLE_DROP, tableDropEnabled ? TABLE_DROP_ACTIVE : null]}
+      >
+        {pileBox}
+      </DropZone>
+    ) : (
+      <View style={TABLE_DROP}>{pileBox}</View>
+    )
+  ) : null;
+
+  const sideRoom = (window.width - layout.boardWidth) / 2;
 
   return (
     <DragProvider>
       <View testID="PlaygroundScreen" style={FULL}>
-        <View style={FULL}>
-          <Image
-            contentFit="fill"
-            style={BACKGROUND_IMAGE}
-            source={PLAYGROUND_BACKGROUND}
-          />
-          <Screen
-            style={MAIN_CONTAINER}
-            preset="scroll"
-            backgroundColor="transparent"
+        <CaveBackground />
+        {sideRoom > 70 ? (
+          <>
+            <Image
+              source={tableAssets.decor.torch}
+              style={[TORCH, { left: sideRoom / 2 - 20 }]}
+              contentFit="contain"
+            />
+            <Image
+              source={tableAssets.decor.torch}
+              style={[TORCH, { right: sideRoom / 2 - 20 }]}
+              contentFit="contain"
+            />
+          </>
+        ) : null}
+        <SafeAreaView style={ROOT} edges={["top", "bottom"]}>
+          <View
+            style={[
+              BOARD,
+              layout.isWide ? BOARD_FRAMED : null,
+              { width: layout.boardWidth },
+            ]}
           >
-            <StatusBox state={state} watchman={watchman} active={active} />
-
-            <View style={OPPONENTS_ROW} testID="OpponentsRow">
-              {opponents.map((p) => (
-                <View key={p.id} style={[PLAYER, { width: seatChipWidth }]}>
-                  <OpponentSlot
-                    player={p}
-                    avatar={PLAYER_AVATARS[p.id]}
-                    phase={state.phase}
-                    prepareDropEnabled={
-                      prepareTurn.isMyTurn &&
-                      state.phase === Phase.Prepare &&
-                      p.active &&
-                      prepareTurn.legalPrepareTarget?.id === p.id
-                    }
-                    outstanding={engine.huyovyeOutstanding(p.id)}
-                    canReceiveHuyovye={
-                      state.phase === Phase.Huyovye &&
-                      humanHuyovyeDue.some((q) => q.receiverId === p.id) &&
-                      huyovyePick != null
-                    }
-                    onDrop={(card) => onDropToPlayer(p, card)}
-                    onHuyovyeTap={() => giveHuyovye(p.id)}
-                  />
-                </View>
-              ))}
-            </View>
-
-            <View testID="TurnContainer" style={TURN_CONTAINER}>
-              <View style={{ ...MAIN_TURN_BACKGROUND, flex: 1 }}>
-                <Image
-                  contentFit="fill"
-                  style={BACKGROUND_IMAGE}
-                  source={BENCH_BACKGROUND}
+            <View style={[MURAL, { height: layout.muralHeight }]}>
+              <Image
+                source={tableAssets.boards.caveMural}
+                style={FILL_IMAGE}
+                contentFit="cover"
+              />
+              <View
+                style={[MURAL_CONTENT, { paddingHorizontal: layout.padding }]}
+              >
+                <TopBar
+                  state={state}
+                  watchman={watchman}
+                  isWide={layout.isWide}
+                  height={layout.headerHeight}
                 />
-                {state.phase === Phase.Prepare && state.prepareHeld ? (
-                  <Draggable
-                    data={toUiCard(state.prepareHeld)}
-                    disabled={!prepareTurn.isMyTurn}
-                  >
-                    <Card {...toUiCard(state.prepareHeld)} opened />
-                  </Draggable>
-                ) : null}
-                {state.phase === Phase.Prepare ? (
-                  <View testID="DeckContainer" style={DECK_CONTAINER}>
-                    {state.deck.length > 0 || state.beaten.length > 0 ? (
-                      <Card
-                        {...toUiCard(state.deck[0] || state.beaten[0])}
-                        opened={false}
-                        animation={false}
-                      />
-                    ) : null}
-                  </View>
-                ) : null}
-                {state.phase === Phase.Main ? (
-                  <DropZone
-                    style={MAIN_TURN_CONTAINER}
-                    disabled={!prepareTurn.isMyTurn || state.discardPendingFlip}
-                    onDrop={onDropMain}
-                  >
-                    {state.current.map((card, i) => (
-                      <View
-                        key={uiCardKey(toUiCard(card), i)}
-                        style={[
-                          i === 0 ? FAN_CARD_FIRST : FAN_CARD,
-                          { zIndex: i },
-                        ]}
-                      >
-                        <Card {...toUiCard(card)} opened />
-                      </View>
-                    ))}
-                  </DropZone>
-                ) : null}
-                {state.phase === Phase.Huyovye &&
-                state.resumeMainAfterHuyovye &&
-                state.current.length > 0 ? (
-                  <View style={MAIN_TURN_CONTAINER}>
-                    {state.current.map((card, i) => (
-                      <View
-                        key={uiCardKey(toUiCard(card), i)}
-                        style={[
-                          i === 0 ? FAN_CARD_FIRST : FAN_CARD,
-                          { zIndex: i },
-                        ]}
-                      >
-                        <Card {...toUiCard(card)} opened />
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
+                {seatsRow}
               </View>
             </View>
-          </Screen>
 
-          <SafeAreaView style={FOOTER}>
-            {/* Hints and actions sit directly above the hand so the board
-                stays visible; the scroll area shrinks instead. */}
-            {state.phase === Phase.Huyovye ? (
-              <HuyovyeBanner
-                state={state}
-                humanHuyovyeDueCount={humanHuyovyeDue.length}
+            <View
+              style={[TABLE, { minHeight: layout.tableMinHeight }]}
+              testID="TableSurface"
+            >
+              <Image
+                source={tableAssets.boards.stoneTable}
+                style={FILL_IMAGE}
+                contentFit="cover"
               />
-            ) : null}
-
-            {state.pendingWatchmanHandoff ? (
-              <WatchmanHandoffBanner
-                state={state}
-                onAccept={() => engine.acceptWatchmanHandoff()}
-                onAskWho={() => engine.askWhoIsWatchman(HUMAN_ID)}
-              />
-            ) : null}
-
-            {state.phase === Phase.Ended &&
-            !state.pendingWatchmanHandoff &&
-            activePlayers.length <= 2 ? (
-              <EndedBanner
-                state={state}
-                humanId={HUMAN_ID}
-                activePlayers={activePlayers}
-                onAskWho={() => engine.askWhoIsWatchman(HUMAN_ID)}
-                onAnswerWho={() =>
-                  state.watchmanId != null &&
-                  engine.answerWatchman(state.watchmanId, HUMAN_ID)
-                }
-              />
-            ) : null}
-
-            <TurnActionButtons
-              engine={engine}
-              state={state}
-              humanId={HUMAN_ID}
-              isMyTurn={prepareTurn.isMyTurn}
-              canKeepPrepare={prepareTurn.canKeepPrepare}
-            />
-
-            <ProtocolBanners
-              protocols={myProtocols}
-              onClaimStumps={() => engine.claimStumps(HUMAN_ID)}
-              onExit={() => engine.exitGame(HUMAN_ID)}
-            />
-
-            {state.phase === Phase.Main &&
-            activePlayers.length === 2 &&
-            !state.pendingWatchmanHandoff ? (
-              <DuelControls
-                duelists={activePlayers}
-                onSetWatchman={(id) => engine.setWatchman(id)}
-              />
-            ) : null}
-
-            <View style={FOOTER_CONTENT}>
-              <DropZone
-                disabled={
-                  !prepareTurn.isMyTurn ||
-                  state.phase !== Phase.Prepare ||
-                  prepareTurn.legalPrepareTarget?.id !== me.id
-                }
-                onDrop={(card) => onDropToPlayer(me, card)}
-              >
-                <FlatList
-                  horizontal
-                  contentContainerStyle={FLAT_LIST}
-                  data={handData}
-                  keyExtractor={(item, index) => uiCardKey(item, index)}
-                  renderItem={renderHandItem}
-                  getItemLayout={getItemLayout}
-                  windowSize={5}
-                  initialNumToRender={8}
-                  maxToRenderPerBatch={8}
-                  removeClippedSubviews={false}
-                  style={{ minHeight: cardHeight + 8 }}
-                />
-              </DropZone>
+              {layout.stackedSlots ? (
+                <View style={TABLE_STACK}>
+                  {showSeatCards ? seatCards : null}
+                  {deckSlot || heldSlot ? (
+                    <View style={SLOTS_ROW}>
+                      {deckSlot}
+                      {heldSlot}
+                    </View>
+                  ) : null}
+                </View>
+              ) : (
+                <>
+                  {showSeatCards ? seatCards : null}
+                  {deckSlot}
+                  {heldSlot}
+                </>
+              )}
+              {pile}
             </View>
-          </SafeAreaView>
-        </View>
+
+            <View
+              style={[
+                MESSAGE_WRAP,
+                { paddingHorizontal: layout.isWide ? 12 : 4 },
+              ]}
+            >
+              <MessageBar
+                engine={engine}
+                state={state}
+                context={{
+                  humanId: HUMAN_ID,
+                  isMyTurn: prepareTurn.isMyTurn,
+                  legalTarget: prepareTurn.legalPrepareTarget,
+                  humanHuyovyeDue: humanHuyovyeDue.length,
+                  protocols: myProtocols,
+                }}
+                canKeepPrepare={prepareTurn.canKeepPrepare}
+                activePlayers={activePlayers}
+                isWide={layout.isWide}
+                minHeight={layout.messageMinHeight}
+              />
+            </View>
+
+            <PlayerHand
+              cards={handData}
+              phase={state.phase}
+              isMyTurn={prepareTurn.isMyTurn}
+              layout={layout}
+              pick={huyovyePick}
+              onPick={setHuyovyePick}
+              dropEnabled={isPrepareTarget(me)}
+              onDrop={(card) => onDropToPlayer(me.id, card)}
+            />
+          </View>
+        </SafeAreaView>
       </View>
     </DragProvider>
   );
+};
+
+const ROOT: ViewStyle = {
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const BOARD: ViewStyle = {
+  flex: 1,
+  overflow: "hidden",
+  backgroundColor: "#24170f",
+};
+
+const BOARD_FRAMED: ViewStyle = {
+  marginVertical: 8,
+  borderRadius: 14,
+  borderWidth: 3,
+  borderColor: "#3a2618",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.7,
+  shadowRadius: 24,
+  elevation: 16,
+};
+
+const FILL_IMAGE: ImageStyle = {
+  ...StyleSheet.absoluteFill,
+  width: "100%",
+  height: "100%",
+};
+
+const MURAL: ViewStyle = {
+  width: "100%",
+  overflow: "hidden",
+};
+
+const MURAL_CONTENT: ViewStyle = {
+  flex: 1,
+  paddingTop: 6,
+  gap: 4,
+};
+
+const SEATS_ROW: ViewStyle = {
+  flexDirection: "row",
+  justifyContent: "center",
+  alignItems: "flex-start",
+};
+
+const TABLE: ViewStyle = {
+  flex: 1,
+  width: "100%",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden",
+};
+
+const SIDE_SLOT: ViewStyle = {
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const INLINE_SLOT: ViewStyle = {
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const TABLE_STACK: ViewStyle = {
+  alignItems: "center",
+  gap: 10,
+};
+
+const SLOTS_ROW: ViewStyle = {
+  flexDirection: "row",
+  gap: 28,
+  alignItems: "center",
+};
+
+const DECK_BADGE: ViewStyle = {
+  position: "absolute",
+  bottom: -8,
+  right: -8,
+  width: 38,
+  height: 38,
+};
+
+const BADGE_TEXT: TextStyle = { ...HUD_TEXT, fontSize: 13 };
+
+const HELD_GLOW: ViewStyle = {
+  borderRadius: 8,
+  shadowColor: "#ffb347",
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 1,
+  shadowRadius: 16,
+  elevation: 14,
+};
+
+const TABLE_DROP: ViewStyle = {
+  minWidth: "50%",
+  alignSelf: "stretch",
+  marginVertical: 10,
+  marginHorizontal: "12%",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 16,
+  borderWidth: 2,
+  borderColor: "transparent",
+};
+
+const TABLE_DROP_ACTIVE: ViewStyle = {
+  borderColor: "rgba(255,179,71,0.75)",
+  borderStyle: "dashed",
+  backgroundColor: "rgba(255,179,71,0.08)",
+};
+
+const MESSAGE_WRAP: ViewStyle = {
+  marginTop: -10,
+  marginBottom: -6,
+  zIndex: 5,
+};
+
+const TORCH: ImageStyle = {
+  position: "absolute",
+  top: "30%",
+  width: 40,
+  height: 150,
 };

@@ -47,7 +47,8 @@
           "resizeMode": "cover",
           "backgroundColor": "#1d1d1d"
         }
-      ]
+      ],
+      "expo-image"
     ],
     "extra": {
       "eas": {

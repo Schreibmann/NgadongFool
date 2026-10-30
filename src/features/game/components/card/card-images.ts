@@ -1,6 +1,6 @@
 import { CardRanks, CardSuits } from "./card.props";
 
-const BACK = require("@assets/cards/back.png");
+const BACK = require("@assets/prehistoric/card_back/card_back_single.png");
 
 type LocalImage = number;
 

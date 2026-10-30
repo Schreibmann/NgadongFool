@@ -1,0 +1,58 @@
+// Static Metro asset map for the Prehistoric card redesign.
+// Keep require() paths literal (Metro needs them).
+export const gameAssets = {
+  backgrounds: {
+    caveBoardMural: require("./backgrounds/cave_board_mural.png"),
+    caveRockTexture: require("./backgrounds/cave_rock_texture_tile.png"),
+    caveRockStrip: require("./backgrounds/cave_rock_texture_strip.png"),
+  },
+  avatars: {
+    ivan: require("./avatars/avatar_ivan_bearded.png"),
+    sebastian: require("./avatars/avatar_sebastian_rugged.png"),
+    gosha: require("./avatars/avatar_gosha_red_beard.png"),
+    femaleOptional: require("./avatars/avatar_female_optional.png"),
+  },
+  panels: {
+    banner: require("./panels/rope_cave_banner.png"),
+    flatWide: require("./panels/stone_panel_flat_wide.png"),
+    flatSmall: require("./panels/stone_panel_flat_small.png"),
+    blankLarge: require("./panels/stone_panel_blank_large.png"),
+    blankLong: require("./panels/stone_panel_blank_long.png"),
+    tileSquare: require("./panels/stone_tile_square.png"),
+    tileSmall: require("./panels/stone_tile_small.png"),
+  },
+  icons: {
+    crown: require("./icons/icon_crown.png"),
+    settings: require("./icons/icon_settings.png"),
+    wifi: require("./icons/icon_wifi.png"),
+    players: require("./icons/icon_players.png"),
+    sound: require("./icons/icon_sound.png"),
+    music: require("./icons/icon_music.png"),
+    info: require("./icons/icon_info.png"),
+    close: require("./icons/icon_close.png"),
+    play: require("./icons/icon_play_arrow.png"),
+    cancel: require("./icons/icon_cancel.png"),
+    refresh: require("./icons/icon_refresh.png"),
+    check: require("./icons/badge_check.png"),
+    warning: require("./icons/badge_warning.png"),
+    moreChat: require("./icons/icon_more_chat.png"),
+    chat: require("./icons/icon_chat.png"),
+    playersBadge: require("./icons/badge_players.png"),
+    counter: require("./icons/badge_counter.png"),
+    crownSmall: require("./icons/badge_crown_small.png"),
+  },
+  decor: {
+    boneDivider: require("./decor/wood_bone_divider.png"),
+    handprint: require("./decor/handprint_stone.png"),
+    crownMedallion: require("./decor/medallion_crown.png"),
+    targetMedallion: require("./decor/medallion_target.png"),
+    torch: require("./decor/torch_lit.png"),
+    spear: require("./decor/spear_stone.png"),
+    boneProp: require("./decor/stone_bone_prop.png"),
+    handprintTile: require("./decor/stone_handprint_tile.png"),
+  },
+  cards: {
+    back: require("./card_back/card_back_single.png"),
+    deck: require("./card_back/card_back_stack.png"),
+  },
+} as const;
