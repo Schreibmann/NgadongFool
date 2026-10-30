@@ -1,5 +1,11 @@
 import * as React from "react";
-import { StyleSheet, Text, View, type ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  type ImageStyle,
+  type ViewStyle,
+} from "react-native";
 import { Image } from "expo-image";
 import Animated, {
   useAnimatedStyle,
@@ -29,10 +35,22 @@ const propsAreEqual = (
   prevProps.suit === nextProps.suit &&
   prevProps.opened === nextProps.opened &&
   prevProps.isStump === nextProps.isStump &&
-  prevProps.animation === nextProps.animation;
+  prevProps.animation === nextProps.animation &&
+  prevProps.width === nextProps.width &&
+  prevProps.height === nextProps.height;
 
 function CardComponent(props: CardProps) {
-  const { opened, isStump, rank, suit, animation = true } = props;
+  const {
+    opened,
+    isStump,
+    rank,
+    suit,
+    animation = true,
+    width,
+    height,
+  } = props;
+  const cardW = width ?? CardWidth;
+  const cardH = height ?? cardHeight;
   const flip = useSharedValue(animation ? 0 : 1);
 
   // Re-run whenever the rendered card identity changes so a recycled
@@ -62,19 +80,53 @@ function CardComponent(props: CardProps) {
 
   const source = getCardImageSource(suit, rank, opened);
 
+  const containerStyle: ViewStyle = {
+    width: cardW,
+    height: cardH,
+    backgroundColor: "transparent",
+    borderRadius: 6,
+    overflow: "hidden",
+  };
+  const imageStyle: ImageStyle = {
+    width: cardW,
+    height: cardH,
+    borderRadius: 6,
+  };
+
   return (
-    <Animated.View style={[styles.container, SHADOW, animatedStyle]}>
+    <Animated.View
+      style={[containerStyle, SHADOW, animatedStyle as unknown as ViewStyle]}
+    >
       <Image
         source={source}
-        style={styles.image}
+        style={imageStyle}
         contentFit="cover"
         cachePolicy="memory-disk"
         transition={0}
         draggable={false}
       />
       {isStump ? (
-        <View style={styles.stumpOverlay} pointerEvents="none">
-          <Text style={styles.stumpText}>ПЕНЁК</Text>
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { alignItems: "center", justifyContent: "center" },
+          ]}
+          pointerEvents="none"
+        >
+          <Text
+            style={[
+              {
+                color: color.palette.black,
+                fontFamily: typography.code,
+                fontWeight: "700",
+                fontSize: 24,
+                letterSpacing: 6,
+              },
+              { transform: [{ rotate: "-64deg" }] },
+            ]}
+          >
+            ПЕНЁК
+          </Text>
         </View>
       ) : null}
     </Animated.View>
@@ -83,33 +135,3 @@ function CardComponent(props: CardProps) {
 
 export const Card = React.memo(CardComponent, propsAreEqual);
 Card.displayName = "Card";
-
-const styles = StyleSheet.create({
-  container: {
-    width: CardWidth,
-    height: cardHeight,
-    backgroundColor: "transparent",
-    marginVertical: 3,
-    marginHorizontal: 0,
-    borderRadius: 6,
-    overflow: "hidden",
-  },
-  image: {
-    width: CardWidth,
-    height: cardHeight,
-    borderRadius: 6,
-  },
-  stumpOverlay: {
-    ...StyleSheet.absoluteFill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stumpText: {
-    color: color.palette.black,
-    fontFamily: typography.code,
-    fontWeight: "700",
-    fontSize: 24,
-    letterSpacing: 6,
-    transform: [{ rotate: "-64deg" }],
-  },
-});

@@ -174,6 +174,8 @@ const GhostOverlay = React.memo(function GhostOverlay({
           opened={!overlay.data.isStump}
           animation={false}
           dragging
+          width={overlay.width}
+          height={overlay.height}
         />
       </Animated.View>
     </View>

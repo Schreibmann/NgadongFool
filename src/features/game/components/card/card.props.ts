@@ -17,4 +17,8 @@ export interface CardProps extends Card {
   opened: boolean;
   dragging?: boolean;
   animation?: boolean;
+  /** Override default card width (CardWidth). */
+  width?: number;
+  /** Override default card height (cardHeight). */
+  height?: number;
 }

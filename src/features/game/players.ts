@@ -1,26 +1,22 @@
+import type { ImageSource } from "expo-image";
+import { tableAssets } from "@assets/prehistoric-v2/assets";
 import type { SeatConfig } from "./engine";
-
-const PLAYER_ONE_AVATAR = require("@assets/avatars/cpu_avatar_1.png");
-const PLAYER_TWO_AVATAR = require("@assets/avatars/cpu_avatar_2.png");
-const PLAYER_AVATAR = require("@assets/avatars/ng-scull.png");
 
 export const HUMAN_ID = 100;
 
-const CPU_ROSTER: Array<{ id: number; name: string; avatar: number }> = [
-  { id: 1, name: "Ivan", avatar: PLAYER_ONE_AVATAR },
-  { id: 2, name: "Sebastian", avatar: PLAYER_TWO_AVATAR },
-  { id: 3, name: "Gosha", avatar: PLAYER_ONE_AVATAR },
-  { id: 4, name: "Tolya", avatar: PLAYER_TWO_AVATAR },
-  { id: 5, name: "Misha", avatar: PLAYER_ONE_AVATAR },
+const { avatars } = tableAssets;
+
+const CPU_ROSTER: Array<{ id: number; name: string; avatar: ImageSource }> = [
+  { id: 1, name: "Ivan", avatar: avatars.ivan },
+  { id: 2, name: "Sebastian", avatar: avatars.sebastian },
+  { id: 3, name: "Gosha", avatar: avatars.gosha },
+  { id: 4, name: "Tolya", avatar: avatars.alternate },
+  { id: 5, name: "Misha", avatar: avatars.ivan },
 ];
 
-export const PLAYER_AVATARS: Record<number, number> = {
-  [HUMAN_ID]: PLAYER_AVATAR,
-  1: PLAYER_ONE_AVATAR,
-  2: PLAYER_TWO_AVATAR,
-  3: PLAYER_ONE_AVATAR,
-  4: PLAYER_TWO_AVATAR,
-  5: PLAYER_ONE_AVATAR,
+export const PLAYER_AVATARS: Record<number, ImageSource> = {
+  [HUMAN_ID]: avatars.ivan,
+  ...Object.fromEntries(CPU_ROSTER.map((c) => [c.id, c.avatar])),
 };
 
 export const MIN_PLAYERS = 3;

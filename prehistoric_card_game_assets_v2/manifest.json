@@ -1,0 +1,383 @@
+{
+  "name": "Prehistoric Card Game UI Assets v2",
+  "description": "Separated image resources cropped from generated atlases and prepared for React Native composition.",
+  "runtime_assets": [
+    {
+      "path": "avatars/alternate_character.png",
+      "width": 144,
+      "height": 189,
+      "mode": "RGBA",
+      "bytes": 69268
+    },
+    {
+      "path": "avatars/gosha.png",
+      "width": 138,
+      "height": 189,
+      "mode": "RGBA",
+      "bytes": 67276
+    },
+    {
+      "path": "avatars/ivan.png",
+      "width": 150,
+      "height": 189,
+      "mode": "RGBA",
+      "bytes": 71930
+    },
+    {
+      "path": "avatars/sebastian.png",
+      "width": 150,
+      "height": 190,
+      "mode": "RGBA",
+      "bytes": 70446
+    },
+    {
+      "path": "backgrounds/earth_rock_blurred.png",
+      "width": 1024,
+      "height": 1024,
+      "mode": "RGB",
+      "bytes": 322728
+    },
+    {
+      "path": "backgrounds/earth_rock_texture.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB",
+      "bytes": 3037908
+    },
+    {
+      "path": "boards/cave_mural_header.png",
+      "width": 961,
+      "height": 291,
+      "mode": "RGBA",
+      "bytes": 676555
+    },
+    {
+      "path": "boards/game_board_compact.png",
+      "width": 630,
+      "height": 354,
+      "mode": "RGBA",
+      "bytes": 528815
+    },
+    {
+      "path": "boards/game_board_full.png",
+      "width": 966,
+      "height": 600,
+      "mode": "RGBA",
+      "bytes": 1397947
+    },
+    {
+      "path": "boards/stone_table_surface.png",
+      "width": 948,
+      "height": 316,
+      "mode": "RGBA",
+      "bytes": 725504
+    },
+    {
+      "path": "cards/card_back_deck.png",
+      "width": 295,
+      "height": 276,
+      "mode": "RGBA",
+      "bytes": 197084
+    },
+    {
+      "path": "cards/card_back_portrait.png",
+      "width": 211,
+      "height": 272,
+      "mode": "RGBA",
+      "bytes": 131831
+    },
+    {
+      "path": "cards/card_back_single.png",
+      "width": 176,
+      "height": 220,
+      "mode": "RGBA",
+      "bytes": 92477
+    },
+    {
+      "path": "cards/card_back_stack.png",
+      "width": 321,
+      "height": 190,
+      "mode": "RGBA",
+      "bytes": 150912
+    },
+    {
+      "path": "cards/card_face_eight_clubs_reference.png",
+      "width": 150,
+      "height": 213,
+      "mode": "RGBA",
+      "bytes": 49963
+    },
+    {
+      "path": "cards/card_face_queen_clubs_reference.png",
+      "width": 144,
+      "height": 213,
+      "mode": "RGBA",
+      "bytes": 58091
+    },
+    {
+      "path": "cards/card_face_six_hearts_reference.png",
+      "width": 152,
+      "height": 213,
+      "mode": "RGBA",
+      "bytes": 43859
+    },
+    {
+      "path": "decor/bone_pair.png",
+      "width": 121,
+      "height": 79,
+      "mode": "RGBA",
+      "bytes": 23383
+    },
+    {
+      "path": "decor/handprint_plaque.png",
+      "width": 103,
+      "height": 117,
+      "mode": "RGBA",
+      "bytes": 23825
+    },
+    {
+      "path": "decor/rock_angular.png",
+      "width": 76,
+      "height": 72,
+      "mode": "RGBA",
+      "bytes": 13227
+    },
+    {
+      "path": "decor/rock_cluster.png",
+      "width": 85,
+      "height": 74,
+      "mode": "RGBA",
+      "bytes": 15633
+    },
+    {
+      "path": "decor/stone_spear.png",
+      "width": 63,
+      "height": 185,
+      "mode": "RGBA",
+      "bytes": 15975
+    },
+    {
+      "path": "decor/torch.png",
+      "width": 51,
+      "height": 193,
+      "mode": "RGBA",
+      "bytes": 9949
+    },
+    {
+      "path": "icons/cancel.png",
+      "width": 90,
+      "height": 90,
+      "mode": "RGBA",
+      "bytes": 13623
+    },
+    {
+      "path": "icons/close.png",
+      "width": 60,
+      "height": 71,
+      "mode": "RGBA",
+      "bytes": 7684
+    },
+    {
+      "path": "icons/confirm.png",
+      "width": 90,
+      "height": 89,
+      "mode": "RGBA",
+      "bytes": 13437
+    },
+    {
+      "path": "icons/crown.png",
+      "width": 76,
+      "height": 77,
+      "mode": "RGBA",
+      "bytes": 9891
+    },
+    {
+      "path": "icons/info.png",
+      "width": 63,
+      "height": 72,
+      "mode": "RGBA",
+      "bytes": 7240
+    },
+    {
+      "path": "icons/music.png",
+      "width": 67,
+      "height": 73,
+      "mode": "RGBA",
+      "bytes": 8417
+    },
+    {
+      "path": "icons/players.png",
+      "width": 60,
+      "height": 71,
+      "mode": "RGBA",
+      "bytes": 7469
+    },
+    {
+      "path": "icons/settings.png",
+      "width": 64,
+      "height": 72,
+      "mode": "RGBA",
+      "bytes": 8140
+    },
+    {
+      "path": "icons/sound.png",
+      "width": 72,
+      "height": 73,
+      "mode": "RGBA",
+      "bytes": 9443
+    },
+    {
+      "path": "icons/undo.png",
+      "width": 90,
+      "height": 89,
+      "mode": "RGBA",
+      "bytes": 13410
+    },
+    {
+      "path": "icons/wifi.png",
+      "width": 61,
+      "height": 70,
+      "mode": "RGBA",
+      "bytes": 7684
+    },
+    {
+      "path": "panels/bone_frame_wide.png",
+      "width": 1108,
+      "height": 255,
+      "mode": "RGBA",
+      "bytes": 523514
+    },
+    {
+      "path": "panels/irregular_stone_plate.png",
+      "width": 680,
+      "height": 275,
+      "mode": "RGBA",
+      "bytes": 376668
+    },
+    {
+      "path": "panels/stone_header_small.png",
+      "width": 331,
+      "height": 181,
+      "mode": "RGBA",
+      "bytes": 114629
+    },
+    {
+      "path": "panels/stone_header_wide.png",
+      "width": 867,
+      "height": 194,
+      "mode": "RGBA",
+      "bytes": 337493
+    },
+    {
+      "path": "panels/stone_nameplate.png",
+      "width": 450,
+      "height": 182,
+      "mode": "RGBA",
+      "bytes": 167765
+    },
+    {
+      "path": "panels/stone_portrait_frame.png",
+      "width": 305,
+      "height": 290,
+      "mode": "RGBA",
+      "bytes": 178148
+    },
+    {
+      "path": "panels/stone_round_badge.png",
+      "width": 175,
+      "height": 178,
+      "mode": "RGBA",
+      "bytes": 61900
+    },
+    {
+      "path": "panels/stone_status_bar.png",
+      "width": 428,
+      "height": 88,
+      "mode": "RGBA",
+      "bytes": 64392
+    },
+    {
+      "path": "panels/stone_thin_divider.png",
+      "width": 730,
+      "height": 112,
+      "mode": "RGBA",
+      "bytes": 160563
+    },
+    {
+      "path": "panels/wood_action_button.png",
+      "width": 608,
+      "height": 220,
+      "mode": "RGBA",
+      "bytes": 236358
+    },
+    {
+      "path": "reference/button_pass_labeled.png",
+      "width": 192,
+      "height": 102,
+      "mode": "RGBA",
+      "bytes": 43860
+    },
+    {
+      "path": "reference/button_play_labeled.png",
+      "width": 262,
+      "height": 105,
+      "mode": "RGBA",
+      "bytes": 54762
+    },
+    {
+      "path": "reference/current_turn_sign_labeled.png",
+      "width": 375,
+      "height": 145,
+      "mode": "RGBA",
+      "bytes": 120454
+    },
+    {
+      "path": "reference/player_hand_reference.png",
+      "width": 588,
+      "height": 189,
+      "mode": "RGBA",
+      "bytes": 143354
+    },
+    {
+      "path": "reference/shift_chip_labeled.png",
+      "width": 150,
+      "height": 81,
+      "mode": "RGBA",
+      "bytes": 26837
+    },
+    {
+      "path": "reference/table_chip_labeled.png",
+      "width": 150,
+      "height": 80,
+      "mode": "RGBA",
+      "bytes": 27656
+    },
+    {
+      "path": "reference/top_status_strip_labeled.png",
+      "width": 383,
+      "height": 68,
+      "mode": "RGBA",
+      "bytes": 55435
+    },
+    {
+      "path": "reference/torch_spear_bones_atlas_crop.png",
+      "width": 137,
+      "height": 196,
+      "mode": "RGBA",
+      "bytes": 57530
+    },
+    {
+      "path": "reference/user_layout_reference.png",
+      "width": 1048,
+      "height": 876,
+      "mode": "RGBA",
+      "bytes": 1555770
+    }
+  ],
+  "notes": [
+    "The game board, cave mural and stone table are separate composition resources; game state and cards should be rendered by React Native.",
+    "Some card examples and labeled UI elements are reference-only, not production state assets.",
+    "The checkerboard background was removed from relevant atlases using edge-connected color-keying; inspect transparent edges before shipping.",
+    "Magenta-keyed panel assets have transparent backgrounds."
+  ]
+}

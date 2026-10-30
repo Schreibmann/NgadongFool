@@ -8,9 +8,9 @@ const BASE: TextStyle = {
 };
 
 const bold: TextStyle = { ...BASE, fontWeight: "700" };
-const header: TextStyle = { ...BASE, fontSize: 24, fontWeight: "700" };
+const header: TextStyle = { ...BASE, fontSize: 26, fontWeight: "800" };
 const fieldLabel: TextStyle = { ...BASE, fontSize: 13, color: color.dim };
-const secondary: TextStyle = { ...BASE, fontSize: 9, color: color.dim };
+const secondary: TextStyle = { ...BASE, fontSize: 11, color: color.dim };
 
 export const presets = {
   default: BASE,
