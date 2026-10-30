@@ -1,206 +1,172 @@
-<img alt="React Native Typescript Boilerplate" src="assets/logo.png" width="1050"/>
+# Ngadong Fool
 
-[![A lot of fundamental features with Typescript support React Native Boilerplate](https://img.shields.io/badge/-A%20lot%20of%20fundamental%20features%20with%20Typescript%20support%20React%20Native%20Boilerplate-orange?style=for-the-badge)](https://github.com/WrathChaos/react-native-typescript-boilerplate)
+Multiplayer card game built around the **Пеньки** deal/prepare table and the main-game fight that follows (dealer / «вахта» roles included). Play locally against CPU opponents on **iOS**, **Android**, or **web**.
 
-[![npm version](https://img.shields.io/npm/v/react-native-typescript-boilerplate.svg?style=for-the-badge)](https://www.npmjs.com/package/@freakycoder/react-native-typescript-boilerplate)
-[![npm](https://img.shields.io/npm/dt/react-native-typescript-boilerplate.svg?style=for-the-badge)](https://www.npmjs.com/package/@freakycoder/react-native-typescript-boilerplate)
-![Platform - Android and iOS](https://img.shields.io/badge/platform-Android%20%7C%20iOS-blue.svg?style=for-the-badge)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg?style=for-the-badge)](https://github.com/prettier/prettier)
+Canonical rules for the domain engine live in the project docs (`game-rules-spec`); this README stays high-level so the table jargon does not drown the setup steps.
 
-<p align="center">
-  <img alt="React Native Typescript Boilerplate"
-        src="assets/react-native-typescript-boilerplate.gif" height="650" width="350" />
-</p>
+## Stack
 
-# 🥳 Version 3.3+
+- **Expo SDK 58** + React Native (Hermes), React Navigation (Welcome → Playground)
+- Pure TypeScript rules engine (`src/features/game/engine`) + UI via `useSyncExternalStore`
+- Cards: per-card assets, `expo-image`, Reanimated, Gesture Handler
+- **EAS Build** / **EAS Update** profiles in `eas.json`
 
-We're proudly announce that `Version 3` is here!
+## Quick start
 
-- Native Splash Screen
-- Much Better Documentation
-- New React Native Architecture Ready (RN 0.68+) 🍻
-- Detailed Roadmap
-- Awesome Theme Support for both Light / Dark Mode
-- Removed Optional Dependencies
-- Latest `React` and `React Native` Dependencies
-- All Dependencies are Upgraded
-- Code Refactoring
-- New GIF with the Project Example for Theming
-
-# 🐶 What's Included?
-
-- **Typescript**
-- **Flipper Ready**
-- **Navigation System**
-  - [React Navigation 6](https://reactnavigation.org/blog/2021/08/14/react-navigation-6.0/)
-  - [React Navigation Helpers](https://github.com/WrathChaos/react-navigation-helpers)
-  - Ready to use Stack and Tab Screens with navigation
-- **NEW: Built-in Theme System with Hooks**
-  - ☀️ Light Theme Support
-  - 🌙 Dark Theme Support
-  - Dynamic Color Palette System
-  - Custom Font Support
-  - Built-in Better `Text` Component
-- **Ready to use [React Native Reanimated 2](https://docs.swmansion.com/react-native-reanimated/) Integration**
-- **Native Splash Screen Integration**
-  - [React Native Splash Screen](https://github.com/crazycodeboy/react-native-splash-screen)
-- **Awesome [React Native Helpers](https://github.com/WrathChaos/react-native-helpers) Integration**
-  - Noth Detection Support
-  - Better Dimension Helper (Ex: ScreenWidth, ScreenHeight)
-  - Cool Text Helpers
-- **React Native Vector Icons**
-  - [React Native Vector Icons](https://github.com/oblador/react-native-vector-icons)
-  - [React Native Dynamic Vector Icons](https://github.com/WrathChaos/react-native-dynamic-vector-icons)
-- **[Localization](https://github.com/stefalda/ReactNativeLocalization) (Multi-Language Support)**
-- **HTTP Network Management**
-  - [Axios](https://github.com/axios/axios)**
-  - [Axios Hooks](https://github.com/simoneb/axios-hooks)
-  - API Service with Usage Examples
-- **Built-in EventEmitter**
-  - [EventBus](https://github.com/browserify/events#readme)
-- **Babel Plugin Module Resolver**
-  - Fixing the relative path problem
-  - Visit `.babelrc` to ready to use and more customization
-- **Pre-commit Husky Integration**
-  - Ready to command husky setup with `npm run husky:setup`
-  - `commitlint` Integration for better commit linter
-  - Auto prettier on pre-commit
-  - Awesome ESLint Integration
-- **Built-in Custom Font Implementation**
-  - All you need to do is copy-paste the .tff files into `assets/fonts` folder
-  - Run `npx react-native-asset` command
-
-- **More and more! :)**
-
-# 🚀 Getting Started
-
-## Quick Start
-
-To create a new project using the barebone boilerplate:
-
-```sh
-git clone https://github.com/WrathChaos/react-native-typescript-boilerplate.git my-app-name
+```bash
+npm install
+npm start          # Expo dev server (press i / a / w)
+npm run web        # Web only
 ```
 
-# 🎯 Step By Step Guide
+| Script                            | Purpose                  |
+| --------------------------------- | ------------------------ |
+| `npm start`                       | Dev client / Expo Go     |
+| `npm run ios` / `npm run android` | Native targets via Expo  |
+| `npm run web`                     | Browser                  |
+| `npm run lint`                    | Biome                    |
+| `npm run lint:fix`                | Biome (auto-fix)         |
+| `npm run typecheck`               | `tsc --noEmit`           |
+| `npm test`                        | Jest rules-engine matrix |
+| `npm run export:web`              | Static web export smoke  |
 
-## Clean-Up & Simple Run
+Node **20+** required (`engines` in `package.json`).
 
-Clean up the files from the example repository and do not forget to install the dependencies
-There is a good example by default on `HomeScreen`. You can delete the all screens.
+Toolchain notes:
 
-- `npm i`
-- `npm run clean-up`
-- `npm i && npx pod-install`
-- `react-native run-ios/android`
+- TypeScript **7** (native, no JavaScript compiler API) is the project
+  type-checker, installed as `@typescript/native` (npm alias of
+  `typescript@7`); `npm run typecheck` runs it via the `.bin/tsc` link, which
+  `scripts/ensure-tsc-bin.cjs` (postinstall) keeps pointed at it.
+- ts-jest 29 still needs the JS compiler API, so the `typescript` dependency
+  is aliased to `@typescript/typescript6` (a TypeScript 6 mirror). Jest
+  transpiles with it; linting is Biome (`biome.json`).
 
-**OR**
+## Project structure
 
-- `rm -rf .git README.md`
-- `rm -rf ./assets`
-- `git init`
-- `npm i`
-- `npm run husky:setup`
-- `npx pod-install` (iOS Only)
-- `react-native run-ios/android`
+Feature-sliced layout. Dependency direction: the rules engine and `shared`
+do not import from UI code; UI composes both.
 
-## Husky Integration
-
-Before doing anything else, please simply run the command to initalize the husky. If you do not run clean-up part you should run the husky setup by yourself
-
-```jsx
-npm run husky:setup
+```text
+src/
+├── features/
+│   ├── welcome/                     # Экран приветствия: выбор 3–6 игроков, колода 36/52, CTA «Играть»
+│   │   └── welcome-screen.tsx
+│   └── game/
+│       ├── engine/                  # Чистый TS-движок правил (без React)
+│       │   ├── cards.ts            # Домен: CardRanks / CardSuits (единственный источник)
+│       │   ├── types.ts            # Phase, Foul, GameState, EnginePlayer, StartOptions
+│       │   ├── deck.ts             # Колода 36, Mulberry32 RNG, shuffle
+│       │   ├── seats.ts            # Круговая механика мест (по часовой)
+│       │   ├── rules.ts            # Чистые правила: canBeat, canPlaceOnTop, 6→ace
+│       │   ├── engine.ts           # GameEngine — фасад/арбитр фаз Deal→Prepare→Huyovye→Main→Ended
+│       │   ├── phases/
+│       │   │   └── dealing.ts      # buildInitialGameState + dealStage (чистые функции)
+│       │   ├── cpu/
+│       │   │   ├── director.ts     # CpuDirector: CPU ходит только через легальный API хоста
+│       │   │   ├── ai.ts           # Эвристики: pickLead, pickBeater, mistake rate
+│       │   │   └── loop-guard.ts   # Анти-зацикливание Main (fingerprint streak)
+│       │   ├── index.ts            # Публичные экспорты движка
+│       │   └── __tests__/          # Jest-матрица правил (9 файлов, 82 теста)
+│       ├── components/
+│       │   ├── card/               # Card (Reanimated flip), card-images (36 PNG + back)
+│       │   ├── drag-drop/          # DragProvider / Draggable / DropZone (overlay ghost)
+│       │   └── ui/                 # Экранные блоки: StatusBox, баннеры, OpponentSlot,
+│       │                           # TurnActionButtons, to-ui-card
+│       ├── hooks/
+│       │   ├── use-cpu-driver.ts   # CPU driver pulse from the UI (450 ms, per phase)
+│       │   └── use-prepare-turn.ts # Prepare-phase selectors + human auto-draw
+│       ├── playground-screen.tsx   # Игровой стол (композиция ui/*-компонентов)
+│       ├── use-game-engine.ts      # useSyncExternalStore поверх GameEngine.subscribe
+│       └── players.ts              # Составы: 1 человек + 4–5 CPU, аватары
+├── shared/
+│   ├── components/                 # Screen / Button / Text (пере-используемые)
+│   ├── theme/                      # Палитра, типографика, spacing
+│   └── constants/                  # Размеры карт, SCREENS (UI-only, без feature-зависимостей)
+├── navigation/                     # Welcome → Playground (stack)
+├── i18n/                           # i18n-js, ru.json, типизированные tx-ключи
+└── types/                          # Дополнения типов
 ```
 
-`husky:setup` will handle the initialization, installation and ready to use `commitlint`, `prettier` and `eslint`.
+Ключевые инварианты архитектуры:
 
-## Rename the project: (Thanks to [react-native-name](https://github.com/junedomingo/react-native-rename))
+- **The engine is the arbiter.** Every player/CPU action is validated inside
+  `GameEngine`; the UI never duplicates rules — it reads immutable snapshots
+  via `useSyncExternalStore` and asks the engine through
+  `peekFirstPrepareTarget` and public methods.
+- **CPU never mutates state directly.** `CpuDirector` acts only through the
+  host's legal API (`drawPrepare`, `playMain`, `takeBottom`, …), so fouls and
+  turn advancement remain the engine's prerogative.
+- **Immutable snapshots.** Every engine mutation publishes a new state object
+  (cloned in `emit()`); UI subscribers render from snapshot data.
+- **No UI imports inside the domain.** Card enums live in `engine/cards.ts`;
+  `components/card/card.props.ts` merely re-exports them.
 
-```sh
-npx react-native-rename <your-project-name>
+## Project layout (additional)
+
+- `src/assets/cards` — per-card PNGs
+- `eas.json` — EAS Build + Update profiles
+- `.github/workflows/ci.yml` — PR checks
+
+## EAS Build & Update
+
+Profiles (see `eas.json`):
+
+| Profile       | Use                                                 |
+| ------------- | --------------------------------------------------- |
+| `development` | Dev client, internal, simulator/APK                 |
+| `preview`     | Internal distribution, channel `preview`            |
+| `production`  | Store/channel `production`, remote app version bump |
+
+### One-time Expo dashboard setup (you must do this)
+
+1. Install CLI if needed: `npm i -g eas-cli` (or use `npx eas-cli`).
+2. Log in: `eas login`.
+3. Link the app: `eas init` (or `eas build:configure`) — this writes a real **`extra.eas.projectId`** into `app.json` and sets `updates.url` to `https://u.expo.dev/<projectId>`. Replace the `YOUR_EAS_PROJECT_ID` placeholders.
+4. Ensure the Expo project owns bundle id / package: `com.pithekantroparium.ngadongfag`.
+5. For store submit, configure Apple / Google credentials in the Expo dashboard or via `eas credentials` (do not commit secrets).
+
+### Common commands
+
+```bash
+eas build --profile preview --platform all
+eas build --profile production --platform all
+eas update --channel preview --message "describe change"
+eas update --channel production --message "describe change"
 ```
 
-> With custom Bundle Identifier (Android only. For iOS, please use Xcode)
+`runtimeVersion.policy` is `appVersion` — bump `expo.version` in `app.json` when native binary compatibility changes so Update channels stay aligned.
 
-```sj
-npx react-native-rename <your-project-name> -b <bundleIdentifier>
-```
+### Secrets / env
 
-### Install Pods (iOS Only)
+- **No app secrets are required** for local play or the Jest suite.
+- CI uses only public npm installs (`npm ci`); no Expo tokens needed for lint/tsc/test/web export.
+- For **EAS Build/Update from CI or your machine**, authenticate with your Expo account (`EXPO_TOKEN` from [expo.dev → Access tokens](https://expo.dev/settings/access-tokens) if using non-interactive CI). Do not commit tokens.
+- Optional profile `env.APP_ENV` is informational only today.
 
-- `npm i`
-- `cd ios && pod install`
-- `cd .. && react-native run-ios/android`
+## CI
 
-### Android local.properties (Android Only)
+GitHub Action `.github/workflows/ci.yml` runs on pull requests and pushes to `develop` / `main` / `master`:
 
-- `npm i`
-- `cd android && mkdir local.properties`
-- `nano local.properties`
+1. `npm ci`
+2. `npm run lint`
+3. `npm run typecheck`
+4. `npm test`
+5. `npm run export:web`
 
-#### Example of MacOS Android SDK Path
+## Vercel (web)
 
-Make sure that set your right path of Android **SDK**
+Repo `vercel.json` pins the modern Expo static export (do **not** use legacy `expo build:web`):
 
-##### MacOS / Linux
+| Setting          | Value                            |
+| ---------------- | -------------------------------- |
+| Install Command  | `npm ci`                         |
+| Build Command    | `npx expo export --platform web` |
+| Output Directory | `dist`                           |
+| Framework Preset | Other / no framework             |
 
-Replace your machine name instead of `username`
+SPA fallback rewrite → `/index.html` is included. If the dashboard overrides these fields, match the table above (or clear overrides so `vercel.json` wins). Scripts `build:web` / `vercel-build` alias the same export for older templates.
 
-```
-sdk.dir=/Users/username/Library/Android/sdk
-```
+## License / product note
 
-##### Windows
-
-Replace your machine name instead of `username`
-
-```
-sdk.dir=/Users/username/Library/Android/sdk
-```
-
-- `cd .. & react-native run-ios/android`
-
-# 📃 Documentations
-
-- [Components](./docs/components.md)
-- [Axios Hooks](./docs/axios-hooks.md)
-- [Event Emitter Usage](./docs/event-emitter.md)
-- [Project Structure](./docs/project-structure.md)
-
-# 🔮 Roadmap
-
-- [x] ~~LICENSE~~
-- [x] ~~Better Husky: Linter, Prettier and Commintlint~~
-- [x] ~~Removal of `react-native-animated-splash-screen`~~
-- [x] ~~New Theme Support with React Navigation~~
-- [x] ~~Implement the native splash screen with [react-native-splash-screen](https://github.com/crazycodeboy/react-native-splash-screen)~~
-- [x] ~~Better and separated documentation~~
-- [x] ~~Axios Hooks~~
-- [x] ~~React Native New Architecture~~
-- [ ] `Babel Plugin Module Resolver` Documentation with Example
-- [ ] `Navigation Service` Documentation with Example
-- [ ] `Localization` Documentation with Example
-- [ ] `Theme` Documentation with Example
-- [ ] `FAQ` Documentation
-- [ ] `Website` for the boilerplate
-- [ ] Splash Screen Documentation
-- [ ] `Detox E2E` Integration Fork Version
-- [ ] `Redux` Fork Version
-- [ ] `MobX State Tree` Fork Version
-- [ ] Write an article about the lib on `Medium`
-- [ ] Write an article about the lib on `DevTo`
-
-## Credits
-
-<span>Photo by <a href="https://unsplash.com/@sotti?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Shifaaz shamoon</a> on <a href="https://unsplash.com/?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></span>
-
-<span>Photo by <a href="https://unsplash.com/@jamie452?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Jamie Street</a> on <a href="https://unsplash.com/s/photos/profile-picture?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></span>
-
-## Author
-
-FreakyCoder, kurayogun@gmail.com
-
-## License
-
-React Native Typescript Boilerplate is available under the MIT license. See the LICENSE file for more info.
+Personal / table game port. Rules wording and foul taxonomy belong in the rules spec, not in marketing copy.

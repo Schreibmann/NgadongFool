@@ -1,42 +1,48 @@
-import "./src/i18n";
-import "./src/utils/ignore-warnings";
 import "react-native-gesture-handler";
 import React from "react";
-import { StatusBar, useColorScheme, LogBox } from "react-native";
-import SplashScreen from "react-native-splash-screen";
+import { StyleSheet, useColorScheme } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
 import {
   SafeAreaProvider,
   initialWindowMetrics,
 } from "react-native-safe-area-context";
-/**
- * ? Local Imports
- */
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Navigation from "./src/navigation";
-import { isAndroid } from "@freakycoder/react-native-helpers";
+import "./src/i18n";
 
-LogBox.ignoreAllLogs();
+void SplashScreen.preventAutoHideAsync();
 
 const App = () => {
   const scheme = useColorScheme();
   const isDarkMode = scheme === "dark";
+  const [fontsLoaded] = useFonts({
+    Ngadong: require("./src/assets/fonts/Ngadong/Ngadong.otf"),
+  });
 
   React.useEffect(() => {
-    StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content");
-    if (isAndroid) {
-      StatusBar.setBackgroundColor("rgba(0,0,0,0)");
-      StatusBar.setTranslucent(true);
+    if (fontsLoaded) {
+      void SplashScreen.hideAsync();
     }
+  }, [fontsLoaded]);
 
-    setTimeout(() => {
-      SplashScreen.hide();
-    }, 750);
-  }, [scheme, isDarkMode]);
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <Navigation />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
+        <Navigation />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 };
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
 
 export default App;

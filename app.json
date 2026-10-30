@@ -1,4 +1,59 @@
 {
-  "name": "ngadongfag",
-  "displayName": "ngadongfag"
+  "expo": {
+    "name": "Ngadong Fool",
+    "slug": "ngadong-fool",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "ngadongfool",
+    "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/YOUR_EAS_PROJECT_ID"
+    },
+    "splash": {
+      "image": "./assets/splash.jpg",
+      "resizeMode": "cover",
+      "backgroundColor": "#1d1d1d"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pithekantroparium.ngadongfag",
+      "jsEngine": "hermes"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1d1d1d"
+      },
+      "package": "com.pithekantroparium.ngadongfag",
+      "jsEngine": "hermes"
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.jpg",
+          "imageWidth": 300,
+          "resizeMode": "cover",
+          "backgroundColor": "#1d1d1d"
+        }
+      ],
+      "expo-image"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
 }
